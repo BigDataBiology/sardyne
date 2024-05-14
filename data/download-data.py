@@ -4,6 +4,7 @@ from jug import TaskGenerator
 def download_e_coli_k12():
     import requests
     import os
+    # See https://progenomes.embl.de/genome.cgi?id=511145&sample=SAMN02604091
     URL = 'https://progenomes.embl.de/dumpSequence.cgi?p=511145.SAMN02604091&t=c&a=511145'
     r = requests.get(URL, stream=True)
     filename = 'genomes/511145.SAMN02604091.fna.gz'
