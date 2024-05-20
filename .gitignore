@@ -1,2 +1,4 @@
 *.jugdata/
 /data/genomes/
+/source/outputs/
+__pycache__/
