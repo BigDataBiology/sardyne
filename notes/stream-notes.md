@@ -2,6 +2,9 @@
 
 ## 2024-05-21
 
+- Recap video: https://youtu.be/k_aaJn_FP1g
+- Full stream: https://www.youtube.com/live/WBGHgXiZFM4
+
 - Simulation of mutations (with a very simple, even simplistic model)
 - Measure average gene size (predicted by prodigal)
 - Used checkM2 as well
