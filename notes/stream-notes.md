@@ -1,5 +1,12 @@
 # Stream notes
 
+## 2024-05-28
+
+Plans for stream:
+
+- run checkM2
+- try a completely noise genome (random sequence with same length as the E. coli genome)
+
 ## 2024-05-21
 
 - Recap video: https://youtu.be/k_aaJn_FP1g
