@@ -1,6 +1,14 @@
 # Stream notes
 
-## 2024-04-14
+## 2024-05-21
+
+- Simulation of mutations (with a very simple, even simplistic model)
+- Measure average gene size (predicted by prodigal)
+- Used checkM2 as well
+
+Next steps: use checkM2 on the simulated data to get its estimates of the genomic quality.
+
+## 2024-05-14
 
 - Recap video: https://youtu.be/N-O3n63-fcY
 - Full stream (with audio issues): https://www.youtube.com/live/D4HINfXUGgA
@@ -19,7 +27,7 @@ CheckM2: a rapid, scalable and accurate tool for assessing microbial genome qual
 Alex Chklovski, Donovan H. Parks, Ben J. Woodcroft & Gene W. Tyson
 https://www.nature.com/articles/s41592-023-01940-w
 
-## 2024-04-06
+## 2024-05-06
 
 Pre-stream notes (shared on the mailing-list):
 
