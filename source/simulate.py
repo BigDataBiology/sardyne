@@ -79,7 +79,8 @@ def read_seq(ifile):
 INPUT_FILE = '../data/genomes/511145.SAMN02604091.fna.gz'
 ecoli_k12 = read_seq(INPUT_FILE)
 gene_sizes = []
-for i in range(1000):
+nr_muts = list(range(0, 50_000, 50))
+for i in nr_muts:
     mutated_file = create_mutated_file('ecoli_k12', ecoli_k12, i)
     gene_sizes.append(prodigal_gene_sizes(mutated_file))
 
