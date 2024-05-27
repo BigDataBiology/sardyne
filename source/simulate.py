@@ -33,30 +33,33 @@ def prodigal_gene_sizes(input_file):
             gene_sizes.append(len(seq))
         return np.array(gene_sizes)
 
-def mutate1(seq):
+def mutate1(seq : list[str]) -> None:
+    '''Mutate a sequence in place using a simple model'''
     pos = random.randint(0, len(seq) - 1)
     op_r = random.random()
     if op_r < .4:
         # Insertion
         nc = random.choice('ACGT')
-        seq = seq[:pos] + nc + seq[pos:]
+        seq[pos] += nc
     elif op_r < .8:
         # Deletion
-        seq = seq[:pos] + seq[pos+1:]
+        while seq[pos] == '':
+            pos = random.randint(0, len(seq) - 1)
+        seq[pos] = seq[pos][1:]
     else:
         # Substitution
         nc = seq[pos]
         while nc == seq[pos]:
             nc = random.choice('ACGT')
-        seq = seq[:pos] + nc  + seq[pos+1:]
-    return seq
+        seq[pos] = nc
 
 def mutate_multi(seq, n=1):
     '''Mutate a sequence n times'''
     random.seed(seq[:1024])
+    seq = list(seq)
     for i in range(n):
-        seq = mutate1(seq)
-    return seq
+        mutate1(seq)
+    return ''.join(seq)
 
 @TaskGenerator
 def create_mutated_file(tag, seq, n):
