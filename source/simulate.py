@@ -79,6 +79,47 @@ def read_seq(ifile):
     assert len(headers) == 1
     return seq
 
+def random_dna_same_len_as(seq):
+    return ''.join(random.choices('ACGT', k=len(seq)))
+
+def random_dna_same_len_as_markov_chain(seq, mc_len=2):
+    '''Generate a random DNA sequence with the same length and Markov chain as seq'''
+    import numpy as np
+    from collections import Counter
+    import random
+    counts_mc_len = Counter(seq[i:i+mc_len] for i in range(len(seq)-mc_len))
+    counts_mc_lenp1 = Counter(seq[i:i+mc_len+1] for i in range(len(seq)-mc_len-1))
+    probs = {}
+    for k,v in counts_mc_len.items():
+        k = tuple(k)
+        probs[k] = []
+        for n in 'ATCG':
+            probs[k].append((counts_mc_lenp1.get(''.join(k)+n, 0) + 1) / (v + 4))
+    new_seq = []
+    for _ in range(mc_len):
+        new_seq.append(random.choice('ATCG'))
+    for i in range(len(seq)-mc_len):
+        new_seq.append(random.choices('ATCG', probs[tuple(seq[-mc_len:])])[0])
+    return ''.join(new_seq)
+
+@TaskGenerator
+def create_random_file(tag, seq, method):
+    '''Create a random file with the same length as seq'''
+    ofile = f'outputs/simulations/{tag}_random_{method}.fna.gz'
+    if method == 'markov2':
+        seq = random_dna_same_len_as_markov_chain(seq, 2)
+    elif method == 'markov4':
+        seq = random_dna_same_len_as_markov_chain(seq, 4)
+    elif method == 'uniform':
+        seq = random_dna_same_len_as(seq)
+    else:
+        raise NotImplementedError(f'Unknown method {method}')
+
+    seq = random_dna_same_len_as(seq)
+    with gzip.open(ofile, 'wt') as f:
+        f.write(f'>{tag}_random\n{seq}\n')
+    return ofile
+
 INPUT_FILE = '../data/genomes/511145.SAMN02604091.fna.gz'
 ecoli_k12 = read_seq(INPUT_FILE)
 gene_sizes = []
@@ -86,5 +127,10 @@ nr_muts = list(range(0, 50_000, 50))
 for i in nr_muts:
     mutated_file = create_mutated_file('ecoli_k12', ecoli_k12, i)
     gene_sizes.append(prodigal_gene_sizes(mutated_file))
+
+random_gene_sizes = {}
+for method in ['uniform', 'markov2', 'markov4']:
+    random_file = create_random_file('ecoli_k12', ecoli_k12, method)
+    random_gene_sizes[method] = prodigal_gene_sizes(random_file)
 
 
