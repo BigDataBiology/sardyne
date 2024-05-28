@@ -1,11 +1,18 @@
 # Stream notes
 
+## 2024-06-04
+
+Plans for stream
+
+- Plot checkM2 results on simulated data
+- Explore a different genome (high-quality isolate)
+- check gene sizes on lower-quality isolates from ProGenomes
+
+
 ## 2024-05-28
 
-Plans for stream:
-
-- run checkM2
-- try a completely noise genome (random sequence with same length as the E. coli genome)
+- [x] run checkM2 (created code to run checkM2 on the simulated data from jug)
+- [x] create a completely noise genome (random sequence with same length as the E. coli genome)
 
 ## 2024-05-21
 
