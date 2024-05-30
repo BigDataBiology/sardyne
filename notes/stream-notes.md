@@ -11,6 +11,9 @@ Plans for stream
 
 ## 2024-05-28
 
+- Recap video: https://youtu.be/RjP3IaKr0Mo (extra on [Jug](https://jug.rtfd.io/): https://youtu.be/NYiEE6ok9Ds
+- Full stream: https://youtube.com/live/WONbVZtHG64
+
 - [x] run checkM2 (created code to run checkM2 on the simulated data from jug)
 - [x] create a completely noise genome (random sequence with same length as the E. coli genome)
 
