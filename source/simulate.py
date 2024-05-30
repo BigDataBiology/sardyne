@@ -64,7 +64,7 @@ def mutate_multi(seq, n=1):
 @TaskGenerator
 def create_mutated_file(tag, seq, n):
     '''Create a mutated file with n mutations'''
-    ofile = f'outputs/simulations/{tag}_mutated_{n}.fna.gz'
+    ofile = f'outputs/simulations/{tag}_mutated_{n:06}.fna.gz'
     seq = mutate_multi(seq, n)
     with gzip.open(ofile, 'wt') as f:
         f.write(f'>{tag}_mutated_{n}\n{seq}\n')
