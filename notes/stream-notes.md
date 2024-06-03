@@ -4,8 +4,8 @@
 
 Plans for stream
 
-- Plot checkM2 results on simulated data
-- Explore a different genome (high-quality isolate)
+- [x] Plot checkM2 results on simulated data
+- [x] Explore a different genome (high-quality isolate)
 - check gene sizes on lower-quality isolates from ProGenomes
 
 
