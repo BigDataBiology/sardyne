@@ -123,7 +123,7 @@ def create_random_file(tag, seq, method):
     return ofile
 
 @TaskGenerator
-def run_checkm2(mutated_files):
+def run_checkm2(tag, seq, nr_muts):
     import subprocess
     import shutil
     import tempfile
@@ -132,13 +132,10 @@ def run_checkm2(mutated_files):
     with tempfile.TemporaryDirectory() as tdir:
         checkm2_idir = f'{tdir}/checkm2_inputs'
         os.makedirs(checkm2_idir)
-        for f in mutated_files:
-            f = pathlib.Path(f)
-            f = f.absolute()
-            pathlib.Path(f'{checkm2_idir}/{f.name}').symlink_to(f)
-        odir = 'outputs/simulations/checkm2'
+        for i in nr_muts:
+            create_mutated_file(f'{checkm2_idir}/mutated_{i:06}.fna.gz', seq, i)
+        odir = f'outputs/checkm2_{tag}_simulation'
         shutil.rmtree(odir, ignore_errors=True)
-        print(f'Running checkm2 on {len(mutated_files)} files')
         subprocess.check_call([
             'conda', 'run', '-n', 'checkm2',
                 'checkm2', 'predict',
@@ -156,11 +153,10 @@ nr_muts = list(range(0, 50_000, 50))
 mutated_files = []
 for i in nr_muts:
     gene_sizes.append(prodigal_gene_sizes_on_mut(ecoli_k12, i))
+run_checkm2('ecoli_k12', ecoli_k12, nr_muts)
 
 random_gene_sizes = {}
 for method in ['uniform', 'markov2', 'markov4']:
     random_file = create_random_file('ecoli_k12', ecoli_k12, method)
     random_gene_sizes[method] = Task(prodigal_gene_sizes, random_file)
-
-#run_checkm2(mutated_files)
 
