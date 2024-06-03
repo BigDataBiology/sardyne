@@ -146,17 +146,25 @@ def run_checkm2(tag, seq, nr_muts):
                      ])
     return odir
 
-INPUT_FILE = '../data/genomes/511145.SAMN02604091.fna.gz'
-ecoli_k12 = read_seq(INPUT_FILE)
-gene_sizes = []
+INPUT_DATA = [
+        ('ecoli_k12', '511145.SAMN02604091.fna.gz'),
+        ('bacillus_subtilis', '1052585.SAMN02603352.fna.gz'),
+        ('listeria_monocytogenes', '169963.SAMEA3138329.fna.gz'),
+        ('campylobacter_jejuni', '192222.SAMEA1705929.fna.gz'),
+        ('staphylococcus_aureus', '93061.SAMN02604235.fna.gz'),
+        ]
+
 nr_muts = list(range(0, 50_000, 50))
-mutated_files = []
-for i in nr_muts:
-    gene_sizes.append(prodigal_gene_sizes_on_mut(ecoli_k12, i))
-run_checkm2('ecoli_k12', ecoli_k12, nr_muts)
 
-random_gene_sizes = {}
-for method in ['uniform', 'markov2', 'markov4']:
-    random_file = create_random_file('ecoli_k12', ecoli_k12, method)
-    random_gene_sizes[method] = Task(prodigal_gene_sizes, random_file)
+for tag, fname in INPUT_DATA:
+    ifile = f'../data/genomes/{fname}'
+    seq = read_seq(ifile)
+    gene_sizes = []
+    for i in nr_muts:
+        gene_sizes.append(prodigal_gene_sizes_on_mut(seq, i))
+    run_checkm2(tag, seq, nr_muts)
 
+    random_gene_sizes = {}
+    for method in ['uniform', 'markov2', 'markov4']:
+        random_file = create_random_file(tag, seq, method)
+        random_gene_sizes[method] = Task(prodigal_gene_sizes, random_file)
