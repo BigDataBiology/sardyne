@@ -2,3 +2,4 @@
 /data/genomes/
 /source/outputs/
 __pycache__/
+.jugstatus.sqlite3
