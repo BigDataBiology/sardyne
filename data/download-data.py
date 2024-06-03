@@ -7,7 +7,7 @@ def dowload_from_progenomes(tax_id, sample_id):
     import os
     URL = f'https://progenomes.embl.de/dumpSequence.cgi?p={tax_id}.{sample_id}&t=c&a={tax_id}'
     r = requests.get(URL, stream=True)
-    filename = 'genomes/{tax_id}.{sample_id}.fna.gz'
+    filename = f'genomes/{tax_id}.{sample_id}.fna.gz'
     with open(filename, 'wb') as f:
         for chunk in r.iter_content(chunk_size=8192):
             if chunk:
