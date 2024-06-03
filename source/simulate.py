@@ -1,14 +1,12 @@
-from jug import TaskGenerator
+from jug import Task, TaskGenerator
 from fasta import fasta_iter
 import random
 import gzip
+import tempfile
 
-
-@TaskGenerator
 def prodigal_gene_sizes(input_file):
     '''Run prodigal and return the gene sizes (in nucleotides)'''
     import subprocess
-    import tempfile
     import numpy as np
     with tempfile.TemporaryDirectory() as tmpdirname:
         aa_out = f'{tmpdirname}/prodigal.faa'
@@ -32,6 +30,12 @@ def prodigal_gene_sizes(input_file):
         for h, seq in fasta_iter(nt_out):
             gene_sizes.append(len(seq))
         return np.array(gene_sizes)
+
+@TaskGenerator
+def prodigal_gene_sizes_on_mut(input_file, nr_mutations):
+    with tempfile.TemporaryDirectory() as tdir:
+        create_mutated_file(f'{tdir}/mutated.fna.gz', input_file, nr_mutations)
+        return prodigal_gene_sizes(f'{tdir}/mutated.fna.gz')
 
 def mutate1(seq : list[str]) -> None:
     '''Mutate a sequence in place using a simple model'''
@@ -61,14 +65,12 @@ def mutate_multi(seq, n=1):
         mutate1(seq)
     return ''.join(seq)
 
-@TaskGenerator
-def create_mutated_file(tag, seq, n):
+def create_mutated_file(oname, seq, n):
     '''Create a mutated file with n mutations'''
-    ofile = f'outputs/simulations/{tag}_mutated_{n:06}.fna.gz'
     seq = mutate_multi(seq, n)
-    with gzip.open(ofile, 'wt') as f:
-        f.write(f'>{tag}_mutated_{n}\n{seq}\n')
-    return ofile
+    with gzip.open(oname, 'wt', compresslevel=0) as f:
+        f.write(f'>mutated_{n}\n{seq}\n')
+    return oname
 
 @TaskGenerator
 def read_seq(ifile):
@@ -153,14 +155,12 @@ gene_sizes = []
 nr_muts = list(range(0, 50_000, 50))
 mutated_files = []
 for i in nr_muts:
-    mutated_file = create_mutated_file('ecoli_k12', ecoli_k12, i)
-    gene_sizes.append(prodigal_gene_sizes(mutated_file))
-    mutated_files.append(mutated_file)
+    gene_sizes.append(prodigal_gene_sizes_on_mut(ecoli_k12, i))
 
 random_gene_sizes = {}
 for method in ['uniform', 'markov2', 'markov4']:
     random_file = create_random_file('ecoli_k12', ecoli_k12, method)
-    random_gene_sizes[method] = prodigal_gene_sizes(random_file)
+    random_gene_sizes[method] = Task(prodigal_gene_sizes, random_file)
 
-run_checkm2(mutated_files)
+#run_checkm2(mutated_files)
 
