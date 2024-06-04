@@ -156,15 +156,16 @@ INPUT_DATA = [
 
 nr_muts = list(range(0, 50_000, 50))
 
+gene_sizes = {}
+random_gene_sizes = {}
 for tag, fname in INPUT_DATA:
     ifile = f'../data/genomes/{fname}'
     seq = read_seq(ifile)
-    gene_sizes = []
+    gene_sizes[tag] = []
     for i in nr_muts:
-        gene_sizes.append(prodigal_gene_sizes_on_mut(seq, i))
+        gene_sizes[tag].append(prodigal_gene_sizes_on_mut(seq, i))
     run_checkm2(tag, seq, nr_muts)
 
-    random_gene_sizes = {}
     for method in ['uniform', 'markov2', 'markov4']:
         random_file = create_random_file(tag, seq, method)
-        random_gene_sizes[method] = Task(prodigal_gene_sizes, random_file)
+        random_gene_sizes[tag, method] = Task(prodigal_gene_sizes, random_file)
