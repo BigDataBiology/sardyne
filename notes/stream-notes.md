@@ -2,6 +2,9 @@
 
 ## 2024-06-04
 
+- Recap video: https://youtu.be/nQCxzccHhnY
+- Full stream: https://www.youtube.com/live/aaU-NqOID2w
+
 Plans for stream
 
 - [x] Plot checkM2 results on simulated data
