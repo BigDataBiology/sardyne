@@ -6,10 +6,11 @@ colors = cm.Dark2.colors
 import jug
 
 _, jugspace = jug.init('simulate.py', 'simulate.jugdata')
-
+gene_sizes = jug.value(jugspace['gene_sizes'])
+nr_muts = jugspace['nr_muts']
 
 q = pl.read_csv(
-        './outputs/simulations/checkm2/quality_report.tsv',
+        './outputs/checkm2_ecoli_k12_simulation/quality_report.tsv',
         separator='\t')
 q = q.with_columns([
     q['Name'] \
@@ -19,9 +20,7 @@ q = q.with_columns([
 q = q.sort('nr_mut')
 
 avg_gene_size = np.array([
-    gs.mean() for gs in jug.value(jugspace['gene_sizes'])])
-
-nr_muts = jugspace['nr_muts']
+    gs.mean() for gs in gene_sizes['ecoli_k12']])
 
 fig,ax1 = plt.subplots()
 ax1.plot(q['nr_mut'], q['Completeness'],'o-', ms=1, c=colors[0], label='Completeness (checkM2)')
