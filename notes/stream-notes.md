@@ -1,5 +1,10 @@
 # Stream notes
 
+## 2024-06-11
+
+- Answer for why the previous results were wrong: CTRL-C does not always correctly stop checkM2
+- [x] Generalize plotting code to multiple genomes
+
 ## 2024-06-04
 
 - Recap video: https://youtu.be/nQCxzccHhnY
