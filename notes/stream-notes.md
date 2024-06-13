@@ -2,6 +2,9 @@
 
 ## 2024-06-11
 
+- Recap video: https://youtu.be/hYwsaFxq5dc
+- Full stream: https://www.youtube.com/live/uSTN6O44NCg
+
 - Answer for why the previous results were wrong: CTRL-C does not always correctly stop checkM2
 - [x] Generalize plotting code to multiple genomes
 - [x] Analysed checkM2 results by looking at missing/false positive KOs in mutated genomes
