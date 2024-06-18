@@ -154,7 +154,7 @@ INPUT_DATA = [
         ('staphylococcus_aureus', '93061.SAMN02604235.fna.gz'),
         ]
 
-nr_muts = list(range(0, 50_000, 50))
+nr_muts = list(range(0, 5_000, 25))
 
 gene_sizes = {}
 random_gene_sizes = {}
