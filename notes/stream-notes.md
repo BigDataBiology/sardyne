@@ -2,6 +2,9 @@
 
 ## 2024-06-18
 
+- Recap video: https://youtu.be/21m5qY9ovKw
+- Full stream: https://www.youtube.com/live/ivIOWYNPmMg
+
 - Explored length of ORFs by KO in the E. coli simulations [commited to `wip` branch]
 - Changed the number of mutations in simulations to max 5k by steps of 25
 
