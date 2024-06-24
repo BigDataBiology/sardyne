@@ -1,6 +1,19 @@
 from jug import TaskGenerator
 
 @TaskGenerator
+def download_file(url, filename):
+    import requests
+    from os import makedirs
+    makedirs('data', exist_ok=True)
+    filename = f'data/{filename}'
+    r = requests.get(url, stream=True)
+    with open(filename, 'wb') as f:
+        for chunk in r.iter_content(chunk_size=8192):
+            if chunk:
+                f.write(chunk)
+    return filename
+
+@TaskGenerator
 def dowload_from_progenomes(tax_id, sample_id):
 
     import requests
@@ -28,3 +41,5 @@ dowload_from_progenomes('169963', 'SAMEA3138329')
 dowload_from_progenomes('192222', 'SAMEA1705929')
 # S. aureus
 dowload_from_progenomes('93061', 'SAMN02604235')
+
+download_file('https://data.ace.uq.edu.au/public/misc_downloads/annotree/r83/uniref100.KO.faa', 'uniref100.KO.faa')

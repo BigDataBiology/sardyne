@@ -45,7 +45,7 @@ for tag in gene_sizes:
 
     data = pl.concat([ pl.read_csv(f, separator='\t', has_header=False)
         for f in
-            glob(f'outputs/checkm2_{tag}_simulation/diamond_output/DIAMOND_RESULTS_*.tsv')])
+            glob(f'outputs/checkm2_{tag}_simulation/diamond_output/DIAMOND_RESULTS*.tsv')])
     data.columns = ['query',
                     'subject',
                     'identity',

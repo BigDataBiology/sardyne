@@ -1,6 +1,18 @@
 # Stream notes
 
+## Next stream
+
+- Use [GMGCv1](https://gmgc.embl.de/) as database for KO sizes
+
+## 2024-06-25
+
+- Used Uniref100.KO database to get estimates of sizes by KO
+- Installed seaborn into sardyne conda environment
+
 ## 2024-06-18
+
+- Recap video: https://youtu.be/21m5qY9ovKw
+- Full stream: https://www.youtube.com/live/ivIOWYNPmMg
 
 - Explored length of ORFs by KO in the E. coli simulations [commited to `wip` branch]
 - Changed the number of mutations in simulations to max 5k by steps of 25
