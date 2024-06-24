@@ -6,7 +6,7 @@
 
 ## 2024-06-25
 
-- Used Uniref100.KO database to get estimates of sizes by KO
+- Used Uniref100.KO database to get estimates of sizes by KO (work committed to `wip` branch)
 - Installed seaborn into sardyne conda environment
 
 ## 2024-06-18
