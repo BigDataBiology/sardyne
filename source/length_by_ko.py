@@ -1,11 +1,15 @@
 from os import makedirs
 import polars as pl
+import numpy as np
+from collections import defaultdict
 import seaborn as sns
 from matplotlib import pyplot as plt
 from fasta import fasta_iter
 import re
 from glob import glob
 import jug
+
+from fasta import fasta_iter
 
 PRODIGAL_FASTA_HEADER_PAT = r'^>(\S+) # (\d+) # (\d+) # (-?)1 # '
 
@@ -26,6 +30,13 @@ def get_gene_positions(f):
                     'start': pl.Int32,
                     'end': pl.Int32,
                     'is_reverse': pl.Boolean})
+
+aa_sizes_by_ko = defaultdict(list)
+for h,seq in fasta_iter('../data/data/uniref100.KO.faa'):
+    _, ko = h.split('~')
+    aa_sizes_by_ko[ko].append(len(seq))
+nr_seqs_by_ko = {k:len(orfs) for k,orfs in aa_sizes_by_ko.items()}
+
 
 for tag,_ in jugspace['INPUT_DATA']:
     f_wt = f'outputs/checkm2_{tag}_simulation/protein_files/mutated_000000.fna.faa'
@@ -105,3 +116,35 @@ for tag,_ in jugspace['INPUT_DATA']:
         ax.plot([0,1,2], [s_wt, s_100, s_1k], '-o', c=color, lw=0.7, alpha=0.3)
 
     fig.savefig(f'plots/length_by_ko_checkm2_{tag}.png')
+
+    diff = diff.with_columns([
+        diff['KO'].map_elements(nr_seqs_by_ko.get, return_dtype=pl.Int32).rename('nr_seqs')
+        ])
+
+
+    percs = []
+    for ix in range(len(diff)):
+        ko, s_wt, s_100, s_1k, nr_seqs = diff.row(ix)
+        if nr_seqs < 100:
+            continue
+        db_size = np.array(aa_sizes_by_ko[ko])*3
+        db_size.sort()
+        percs.append((ko,
+            np.searchsorted(db_size, s_wt)/len(db_size),
+            np.searchsorted(db_size, s_100)/len(db_size),
+            np.searchsorted(db_size, s_1k)/len(db_size),
+                      ))
+
+    percs = pl.DataFrame(percs, schema={'KO': pl.String,
+                                        'perc_wt': pl.Float32,
+                                        'perc_100': pl.Float32,
+                                        'perc_1k': pl.Float32})
+    fig, ax = plt.subplots()
+    sns.boxplot(data=percs.melt(id_vars=['KO']),
+                x='variable',
+                y='value',
+                boxprops=dict(alpha=.4, facecolor='w'),
+                width=.2,
+                ax=ax,
+                )
+    fig.savefig(f'plots/length_by_ko_checkm2_perc_{tag}.png')

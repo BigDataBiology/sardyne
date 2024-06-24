@@ -10,10 +10,11 @@
 
 ## 2024-06-25
 
+
 - Recap: https://youtu.be/LmlGyFV7gXk
 - Full stream: https://www.youtube.com/watch?v=c9vHbBqc1R0
 
-- Used Uniref100.KO database to get estimates of sizes by KO
+- Used Uniref100.KO database to get estimates of sizes by KO (work committed to `wip` branch)
 - Installed seaborn into sardyne conda environment
 
 ## 2024-06-18
