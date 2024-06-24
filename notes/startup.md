@@ -2,7 +2,7 @@
 
 ```bash
 conda create -n sardyne python=3.11 \
-    jug polars matplotlib numpy requests \
+    jug polars matplotlib numpy seaborn requests \
     prodigal pyrodigal ipython
 ```
 
