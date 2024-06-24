@@ -1,5 +1,6 @@
 *.jugdata/
 /data/genomes/
+/data/data/
 /source/outputs/
 __pycache__/
 .jugstatus.sqlite3
