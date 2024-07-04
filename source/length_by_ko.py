@@ -1,3 +1,4 @@
+from os import makedirs
 import polars as pl
 import seaborn as sns
 from matplotlib import pyplot as plt
@@ -9,6 +10,7 @@ import jug
 PRODIGAL_FASTA_HEADER_PAT = r'^>(\S+) # (\d+) # (\d+) # (-?)1 # '
 
 _, jugspace = jug.init('simulate.py', 'simulate.jugdata')
+makedirs('plots', exist_ok=True)
 
 def get_gene_positions(f):
     data = []

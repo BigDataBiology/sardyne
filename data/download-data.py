@@ -19,6 +19,7 @@ def dowload_from_progenomes(tax_id, sample_id):
     import requests
     import os
     URL = f'https://progenomes.embl.de/dumpSequence.cgi?p={tax_id}.{sample_id}&t=c&a={tax_id}'
+    os.makedirs('genomes', exist_ok=True)
     r = requests.get(URL, stream=True)
     filename = f'genomes/{tax_id}.{sample_id}.fna.gz'
     with open(filename, 'wb') as f:
