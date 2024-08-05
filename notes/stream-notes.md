@@ -4,6 +4,10 @@
 
 - Use [GMGCv1](https://gmgc.embl.de/) as database for KO sizes
 
+## 2024-08-06
+
+- Downloaded GMGCv1 database (complete genes only, amino acid sequences)
+
 ## 2024-06-25
 
 - Recap: https://youtu.be/LmlGyFV7gXk

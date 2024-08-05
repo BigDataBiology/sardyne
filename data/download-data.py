@@ -44,3 +44,5 @@ dowload_from_progenomes('192222', 'SAMEA1705929')
 dowload_from_progenomes('93061', 'SAMN02604235')
 
 download_file('https://data.ace.uq.edu.au/public/misc_downloads/annotree/r83/uniref100.KO.faa', 'uniref100.KO.faa')
+
+download_file('https://gmgc.embl.de/downloads/v1.0/subcatalogs/GMGC10.95nr.complete.faa.gz', 'GMGC10.95nr.complete.faa.gz')
