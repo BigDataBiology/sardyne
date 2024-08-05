@@ -115,14 +115,12 @@ for tag,_ in jugspace['INPUT_DATA']:
 
     fig.savefig(f'plots/length_by_ko_checkm2_{tag}.png')
 
-    diff = diff.with_columns([
-        diff['KO'].map_elements(nr_seqs_by_ko.get, return_dtype=pl.Int32).rename('nr_seqs')
+    data = data.with_columns([
+        data['KO'].map_elements(nr_seqs_by_ko.get, return_dtype=pl.Int32).rename('nr_seqs')
         ])
-
-
     percs = []
-    for ix in range(len(diff)):
-        ko, s_wt, s_100, s_1k, nr_seqs = diff.row(ix)
+    for ix in range(len(data)):
+        ko, s_wt, s_100, s_1k, nr_seqs = data.row(ix)
         if nr_seqs < 100:
             continue
         db_size = np.array(aa_sizes_by_ko[ko])*3
@@ -146,3 +144,16 @@ for tag,_ in jugspace['INPUT_DATA']:
                 ax=ax,
                 )
     fig.savefig(f'plots/length_by_ko_checkm2_perc_{tag}.png')
+
+    fig,ax = plt.subplots()
+    X = np.linspace(0,1,1000)
+    ax.plot(X, [(percs['perc_wt'] < x).mean() for x in X], label='WT')
+    ax.plot(X, [(percs['perc_100'] < x).mean() for x in X], label='100')
+    ax.plot(X, [(percs['perc_1k'] < x).mean() for x in X], label='1k')
+    ax.plot(X, X, ':k', label='y=x')
+    ax.legend()
+    ax.set_xlabel('KO length percentile')
+    ax.set_ylabel('Fraction of genes (cumm)')
+    fig.tight_layout()
+    fig.savefig(f'plots/ko_percentile_{tag}.png')
+
