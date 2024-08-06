@@ -19,6 +19,7 @@ def dowload_from_progenomes(tax_id, sample_id):
     import requests
     import os
     URL = f'https://progenomes.embl.de/dumpSequence.cgi?p={tax_id}.{sample_id}&t=c&a={tax_id}'
+    os.makedirs('genomes', exist_ok=True)
     r = requests.get(URL, stream=True)
     filename = f'genomes/{tax_id}.{sample_id}.fna.gz'
     with open(filename, 'wb') as f:
@@ -43,3 +44,5 @@ dowload_from_progenomes('192222', 'SAMEA1705929')
 dowload_from_progenomes('93061', 'SAMN02604235')
 
 download_file('https://data.ace.uq.edu.au/public/misc_downloads/annotree/r83/uniref100.KO.faa', 'uniref100.KO.faa')
+
+download_file('https://gmgc.embl.de/downloads/v1.0/subcatalogs/GMGC10.95nr.complete.faa.gz', 'GMGC10.95nr.complete.faa.gz')

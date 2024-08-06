@@ -1,3 +1,4 @@
+from os import makedirs
 import polars as pl
 import numpy as np
 from collections import defaultdict
@@ -13,6 +14,7 @@ from fasta import fasta_iter
 PRODIGAL_FASTA_HEADER_PAT = r'^>(\S+) # (\d+) # (\d+) # (-?)1 # '
 
 _, jugspace = jug.init('simulate.py', 'simulate.jugdata')
+makedirs('plots', exist_ok=True)
 
 def get_gene_positions(f):
     data = []

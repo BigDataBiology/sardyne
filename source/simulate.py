@@ -3,6 +3,7 @@ from fasta import fasta_iter
 import random
 import gzip
 import tempfile
+import os
 
 def prodigal_gene_sizes(input_file):
     '''Run prodigal and return the gene sizes (in nucleotides)'''
@@ -107,6 +108,7 @@ def random_dna_same_len_as_markov_chain(seq, mc_len=2):
 @TaskGenerator
 def create_random_file(tag, seq, method):
     '''Create a random file with the same length as seq'''
+    os.makedirs('outputs/simulations', exist_ok=True)
     ofile = f'outputs/simulations/{tag}_random_{method}.fna.gz'
     if method == 'markov2':
         seq = random_dna_same_len_as_markov_chain(seq, 2)
