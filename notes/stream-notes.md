@@ -20,6 +20,9 @@ conda run -n checkm2 \
 
 ## 2024-08-06
 
+- Recap: https://youtu.be/d2htGMZOVBY
+- Full stream: https://youtube.com/live/anSEVzkygIU
+
 - Downloaded GMGCv1 database (complete genes only, amino acid sequences)
 - Checked percentiles of gene sizes by KO using checkM2 reference itself
 
