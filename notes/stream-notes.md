@@ -4,19 +4,9 @@
 
 - Use [GMGCv1](https://gmgc.embl.de/) as database for KO sizes
 
-Required command to map GMGCv1 to KOs (using diamond, exactly same as checkM2):
+## 2024-08-13
 
-```bash
-conda run -n checkm2 \
-    diamond blastp \
-    --outfmt 6 \
-    --max-target-seqs 1 \
-    --query ../data/data/GMGC10.95nr.complete.10k.faa.gz \
-    -o DIAMOND_RESULTS.tsv \
-    --threads 12 \
-    --db /home/luispedro/databases/CheckM2_database/uniref100.KO.1.dmnd \
-    --query-cover 80 --subject-cover 80 --id 30 --evalue 1e-05 --block-size 2.0
-```
+- Mapped GMGCv1 to KOs using diamond (same version as checkM2)
 
 ## 2024-08-06
 
