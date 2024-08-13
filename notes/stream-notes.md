@@ -7,6 +7,7 @@
 ## 2024-08-13
 
 - Mapped GMGCv1 to KOs using diamond (same version as checkM2)
+- Explored data. Looked at the distribution of increase in gene sizes vs. decrease. It is not symmetric as it is easier to introduce a stop codon than to read through random DNA without hitting a stop codon sooner or later.
 
 ## 2024-08-06
 
