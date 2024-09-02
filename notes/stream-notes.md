@@ -4,6 +4,10 @@
 
 - Use [GMGCv1](https://gmgc.embl.de/) as database for KO sizes
 
+## 2024-09-03
+
+- Split [GMGCv1](https://gmgc.embl.de/) into chunks of 2m sequences to make the KO mapping more robust
+
 ## 2024-08-13
 
 - Mapped GMGCv1 to KOs using diamond (same version as checkM2)
