@@ -3,10 +3,12 @@
 ## Next stream
 
 - Use [GMGCv1](https://gmgc.embl.de/) as database for KO sizes
+- Attempt to find KOs with very stable gene sizes
 
 ## 2024-09-03
 
 - Split [GMGCv1](https://gmgc.embl.de/) into chunks of 2m sequences to make the KO mapping more robust
+- Checked zscores per KO for gene sizes (instead of percentiles): appears much more stable across different species.
 
 ## 2024-08-13
 

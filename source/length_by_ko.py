@@ -36,7 +36,9 @@ for h,seq in fasta_iter('../data/data/uniref100.KO.faa'):
     _, ko = h.split('~')
     aa_sizes_by_ko[ko].append(len(seq))
 nr_seqs_by_ko = {k:len(orfs) for k,orfs in aa_sizes_by_ko.items()}
-
+aa_sizes_by_ko = {k:np.array(v) for k,v in aa_sizes_by_ko.items()}
+for v in aa_sizes_by_ko.values():
+    v.sort()
 
 for tag,_ in jugspace['INPUT_DATA']:
     f_wt = f'outputs/checkm2_{tag}_simulation/protein_files/mutated_000000.fna.faa'
@@ -120,42 +122,48 @@ for tag,_ in jugspace['INPUT_DATA']:
     data = data.with_columns([
         data['KO'].map_elements(nr_seqs_by_ko.get, return_dtype=pl.Int32).rename('nr_seqs')
         ])
-    percs = []
+
+    zscores = []
     for ix in range(len(data)):
         ko, s_wt, s_100, s_1k, nr_seqs = data.row(ix)
         if nr_seqs < 100:
             continue
         db_size = np.array(aa_sizes_by_ko[ko])*3
         db_size.sort()
-        percs.append((ko,
-            np.searchsorted(db_size, s_wt)/len(db_size),
-            np.searchsorted(db_size, s_100)/len(db_size),
-            np.searchsorted(db_size, s_1k)/len(db_size),
-                      ))
+        zscores.append((ko,
+            (s_wt - db_size.mean())/db_size.std(),
+            (s_100 - db_size.mean())/db_size.std(),
+            (s_1k - db_size.mean())/db_size.std(),
+                        ))
 
-    percs = pl.DataFrame(percs, schema={'KO': pl.String,
-                                        'perc_wt': pl.Float32,
-                                        'perc_100': pl.Float32,
-                                        'perc_1k': pl.Float32})
+
+    zscores = pl.DataFrame(zscores, schema={'KO': pl.String,
+                                        'z_wt': pl.Float32,
+                                        'z_100': pl.Float32,
+                                        'z_1k': pl.Float32})
     fig, ax = plt.subplots()
-    sns.boxplot(data=percs.melt(id_vars=['KO']),
+    sns.boxplot(data=zscores.melt(id_vars=['KO']),
                 x='variable',
                 y='value',
                 boxprops=dict(alpha=.4, facecolor='w'),
                 width=.2,
                 ax=ax,
                 )
-    fig.savefig(f'plots/length_by_ko_checkm2_perc_{tag}.png')
+    fig.savefig(f'plots/length_by_ko_checkm2_zscore_{tag}.png')
 
     fig,ax = plt.subplots()
-    X = np.linspace(0,1,1000)
-    ax.plot(X, [(percs['perc_wt'] < x).mean() for x in X], label='WT')
-    ax.plot(X, [(percs['perc_100'] < x).mean() for x in X], label='100')
-    ax.plot(X, [(percs['perc_1k'] < x).mean() for x in X], label='1k')
-    ax.plot(X, X, ':k', label='y=x')
+    X = np.linspace(-4,4,1000)
+    ax.plot(X, [(zscores['z_wt'] < x).mean() for x in X], label='WT')
+    ax.plot(X, [(zscores['z_100'] < x).mean() for x in X], label='100')
+    ax.plot(X, [(zscores['z_1k'] < x).mean() for x in X], label='1k')
+    # ax.plot(X, X, ':k', label='y=x')
     ax.legend()
-    ax.set_xlabel('KO length percentile')
+    ax.set_xlabel('KO length z-score')
     ax.set_ylabel('Fraction of genes (cumm)')
     fig.tight_layout()
-    fig.savefig(f'plots/ko_percentile_{tag}.png')
+    fig.savefig(f'plots/ko_zscores_{tag}.png')
+
+    zscores_thresh = pl.concat([(zscores.select(pl.col(pl.Float32)) < lim).sum().with_columns(lim=lim) for lim in [-2, -3, -4, -5, -6, -7, -8]])
+    print(tag)
+    print(zscores_thresh)
 
