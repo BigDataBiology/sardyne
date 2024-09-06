@@ -7,10 +7,16 @@
 
 ## 2024-09-03
 
+- Recap: https://youtu.be/DDfLfcmnpVI
+- Full stream: https://www.youtube.com/live/LLeJDXkNFBY
+
 - Split [GMGCv1](https://gmgc.embl.de/) into chunks of 2m sequences to make the KO mapping more robust
 - Checked zscores per KO for gene sizes (instead of percentiles): appears much more stable across different species.
 
 ## 2024-08-13
+
+- Recap: https://youtu.be/a0P3La0w91g
+- Full stream: https://www.youtube.com/live/h_BpiVLNy7M
 
 - Mapped GMGCv1 to KOs using diamond (same version as checkM2)
 - Explored data. Looked at the distribution of increase in gene sizes vs. decrease. It is not symmetric as it is easier to introduce a stop codon than to read through random DNA without hitting a stop codon sooner or later.
