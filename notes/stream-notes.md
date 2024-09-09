@@ -5,6 +5,10 @@
 - Use [GMGCv1](https://gmgc.embl.de/) as database for KO sizes
 - Attempt to find KOs with very stable gene sizes
 
+## 2024-09-09
+
+- Concatenated GMGCv1 DIAMOND outputs into a single file
+
 ## 2024-09-03
 
 - Recap: https://youtu.be/DDfLfcmnpVI

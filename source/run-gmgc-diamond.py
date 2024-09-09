@@ -49,9 +49,23 @@ def split_fasta_file(ifile, nr_seqs_per_chunk):
     ofile.close()
     return ofiles
 
+@TaskGenerator
+def concatenate_files(ofiles, ofile):
+    import gzip
+    from os import unlink
+    with gzip.open(ofile, 'wb') as of:
+        for f in ofiles:
+            with open(f, 'rb') as f:
+                while ch := f.read(1024*1024):
+                    of.write(ch)
+    for f in ofiles:
+        unlink(f)
+    return ofile
+
 chunks = split_fasta_file(GMGC_COMPLETE, 2_000_000)
 
 ko_chunks = []
 for ch in bvalue(chunks):
     ko_chunks.append(run_diamond(ch))
 
+concatenate_files(ko_chunks, 'outputs/GMGC10.complete.diamond.out.gz')
