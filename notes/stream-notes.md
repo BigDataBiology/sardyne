@@ -2,11 +2,13 @@
 
 ## Next stream
 
-- Use [GMGCv1](https://gmgc.embl.de/) as database for KO sizes
 - Attempt to find KOs with very stable gene sizes
+- Look more closely at KOs in E. coli with very short genes (K01232 & K02436)
+- Pre load/compute GMGCv1 KO sizes to avoid rerunning every time
 
 ## 2024-09-09
 
+- Used [GMGCv1](https://gmgc.embl.de/) as database for KO sizes
 - Concatenated GMGCv1 DIAMOND outputs into a single file
 
 ## 2024-09-03

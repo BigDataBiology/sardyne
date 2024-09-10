@@ -1,4 +1,5 @@
 from os import makedirs
+import gzip
 import polars as pl
 import numpy as np
 from collections import defaultdict
@@ -9,9 +10,8 @@ import re
 from glob import glob
 import jug
 
-from fasta import fasta_iter
-
 PRODIGAL_FASTA_HEADER_PAT = r'^>(\S+) # (\d+) # (\d+) # (-?)1 # '
+MIN_UNIGENES_PER_KO = 100
 
 _, jugspace = jug.init('simulate.py', 'simulate.jugdata')
 makedirs('plots', exist_ok=True)
@@ -31,14 +31,50 @@ def get_gene_positions(f):
                     'end': pl.Int32,
                     'is_reverse': pl.Boolean})
 
+with gzip.open('./outputs/GMGC10.complete.diamond.out.gz', 'rb') as f:
+    gmgc = pl.read_csv(f, separator='\t', has_header=False)
+gmgc.columns = ['query',
+                'subject',
+                'identity',
+                'alignment_length',
+                'mismatches',
+                'gap_opens',
+                'q_start',
+                'q_end',
+                's_start',
+                's_end',
+                'evalue',
+                'bit_score']
+gmgc = gmgc.with_columns([
+    gmgc['subject'].map_elements(lambda s: s.split('~')[1], return_dtype=str).alias('KO')
+    ])
 aa_sizes_by_ko = defaultdict(list)
-for h,seq in fasta_iter('../data/data/uniref100.KO.faa'):
-    _, ko = h.split('~')
-    aa_sizes_by_ko[ko].append(len(seq))
-nr_seqs_by_ko = {k:len(orfs) for k,orfs in aa_sizes_by_ko.items()}
+kos = set(gmgc.group_by('KO').len().filter(pl.col('len') > MIN_UNIGENES_PER_KO)['KO'].to_list())
+pre_len = len(gmgc)
+gmgc = gmgc.filter(pl.col('KO').is_in(kos))
+post_len = len(gmgc)
+print(f'Filtered {pre_len - post_len} unigenes (out of {pre_len}; {(pre_len - post_len)/pre_len:.2%})')
+
+interesting_unigenes = set(gmgc['query'].to_list())
+unigene_to_len = {}
+n = 0
+for h,seq in fasta_iter('../data/data/GMGC10.95nr.complete.faa.gz'):
+    n += 1
+    if h in interesting_unigenes:
+        unigene_to_len[h] = len(seq)
+print(f'{len(unigene_to_len):,} unigenes out of {n:,} are interesting (i.e., have KO match to a KO with >{MIN_UNIGENES_PER_KO} unigenes)')
+
+aa_sizes_by_ko = defaultdict(list)
+for ko, unigene in gmgc[['KO', 'query']].iter_rows():
+    aa_sizes_by_ko[ko].append(unigene_to_len[unigene])
+
 aa_sizes_by_ko = {k:np.array(v) for k,v in aa_sizes_by_ko.items()}
 for v in aa_sizes_by_ko.values():
     v.sort()
+
+nr_seqs_by_ko = defaultdict(int)
+for ko, v in aa_sizes_by_ko.items():
+    nr_seqs_by_ko[ko] = len(v)
 
 for tag,_ in jugspace['INPUT_DATA']:
     f_wt = f'outputs/checkm2_{tag}_simulation/protein_files/mutated_000000.fna.faa'
@@ -62,9 +98,9 @@ for tag,_ in jugspace['INPUT_DATA']:
                 'bit_score']
 
     data = data.with_columns([
-        data['query'].map_elements(lambda q: q.split('Ω')[0], return_dtype=str).alias('genome'),
-        data['query'].map_elements(lambda q: q.split('Ω')[1], return_dtype=str).alias('orf'),
-        data['subject'].map_elements(lambda s: s.split('~')[1], return_dtype=str).alias('KO')
+        data['query'].str.split('Ω').list[0].alias('genome'),
+        data['query'].str.split('Ω').list[1].alias('orf'),
+        data['subject'].str.split('~').list[1].alias('KO')
         ])
 
     wt = data.filter(pl.col('genome') == 'mutated_000000.fna')
@@ -126,10 +162,10 @@ for tag,_ in jugspace['INPUT_DATA']:
     zscores = []
     for ix in range(len(data)):
         ko, s_wt, s_100, s_1k, nr_seqs = data.row(ix)
-        if nr_seqs < 100:
+        if ko not in aa_sizes_by_ko:
             continue
         db_size = np.array(aa_sizes_by_ko[ko])*3
-        db_size.sort()
+
         zscores.append((ko,
             (s_wt - db_size.mean())/db_size.std(),
             (s_100 - db_size.mean())/db_size.std(),
@@ -149,10 +185,11 @@ for tag,_ in jugspace['INPUT_DATA']:
                 width=.2,
                 ax=ax,
                 )
+    ax.set_title(f'z-scores for KO lengths ({tag})')
     fig.savefig(f'plots/length_by_ko_checkm2_zscore_{tag}.png')
 
     fig,ax = plt.subplots()
-    X = np.linspace(-4,4,1000)
+    X = np.linspace(-12,12,1000)
     ax.plot(X, [(zscores['z_wt'] < x).mean() for x in X], label='WT')
     ax.plot(X, [(zscores['z_100'] < x).mean() for x in X], label='100')
     ax.plot(X, [(zscores['z_1k'] < x).mean() for x in X], label='1k')
@@ -163,7 +200,6 @@ for tag,_ in jugspace['INPUT_DATA']:
     fig.tight_layout()
     fig.savefig(f'plots/ko_zscores_{tag}.png')
 
-    zscores_thresh = pl.concat([(zscores.select(pl.col(pl.Float32)) < lim).sum().with_columns(lim=lim) for lim in [-2, -3, -4, -5, -6, -7, -8]])
+    zscores_thresh = pl.concat([(zscores.select(pl.col(pl.Float32)) < lim).sum().with_columns(lim=lim) for lim in [-2, -3, -4, -5, -6, -7, -8, -9, -10, -11, -12]])
     print(tag)
     print(zscores_thresh)
-
