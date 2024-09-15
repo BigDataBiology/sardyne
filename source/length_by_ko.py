@@ -41,6 +41,7 @@ kos = set(gmgc.group_by('KO').len().filter(pl.col('len') > MIN_UNIGENES_PER_KO)[
 pre_len = len(gmgc)
 gmgc = gmgc.filter(pl.col('KO').is_in(kos))
 post_len = len(gmgc)
+print(f'Removed {pre_len - post_len:,} unigenes (out of {pre_len:,}; {(pre_len - post_len)/pre_len:.2%})')
 
 aa_sizes_by_ko = defaultdict(list)
 for ko, unigene_len in gmgc[['KO', 'gmgc_unigene_len_aa']].iter_rows():
@@ -50,19 +51,17 @@ aa_sizes_by_ko = {k:np.array(v) for k,v in aa_sizes_by_ko.items()}
 for v in aa_sizes_by_ko.values():
     v.sort()
 
-nr_seqs_by_ko = defaultdict(int)
-for ko, v in aa_sizes_by_ko.items():
-    nr_seqs_by_ko[ko] = len(v)
+nr_seqs_by_ko = dict(gmgc.group_by('KO').len().iter_rows())
 
 for tag,_ in jugspace['INPUT_DATA']:
     f_wt = f'outputs/checkm2_{tag}_simulation/protein_files/mutated_000000.fna.faa'
     f_100 = f'outputs/checkm2_{tag}_simulation/protein_files/mutated_000100.fna.faa'
     f_1k = f'outputs/checkm2_{tag}_simulation/protein_files/mutated_001000.fna.faa'
 
-    data = pl.concat([ pl.read_csv(f, separator='\t', has_header=False)
+    diamond_out = pl.concat([ pl.read_csv(f, separator='\t', has_header=False)
         for f in
             glob(f'outputs/checkm2_{tag}_simulation/diamond_output/DIAMOND_RESULTS*.tsv')])
-    data.columns = ['query',
+    diamond_out.columns = ['query',
                 'subject',
                 'identity',
                 'alignment_length',
@@ -75,15 +74,15 @@ for tag,_ in jugspace['INPUT_DATA']:
                 'evalue',
                 'bit_score']
 
-    data = data.with_columns([
-        data['query'].str.split('Ω').list[0].alias('genome'),
-        data['query'].str.split('Ω').list[1].alias('orf'),
-        data['subject'].str.split('~').list[1].alias('KO')
+    diamond_out = diamond_out.with_columns([
+        diamond_out['query'].str.split('Ω').list[0].alias('genome'),
+        diamond_out['query'].str.split('Ω').list[1].alias('orf'),
+        diamond_out['subject'].str.split('~').list[1].alias('KO')
         ])
 
-    wt = data.filter(pl.col('genome') == 'mutated_000000.fna')
-    mut100 = data.filter(pl.col('genome') == 'mutated_000100.fna')
-    mut1k = data.filter(pl.col('genome') == 'mutated_001000.fna')
+    wt = diamond_out.filter(pl.col('genome') == 'mutated_000000.fna')
+    mut100 = diamond_out.filter(pl.col('genome') == 'mutated_000100.fna')
+    mut1k = diamond_out.filter(pl.col('genome') == 'mutated_001000.fna')
 
     wt_kos = set(wt['KO'].to_list())
     mut100_kos = set(mut100['KO'].to_list())
@@ -105,41 +104,14 @@ for tag,_ in jugspace['INPUT_DATA']:
             _, start1k, end1k, _ = orfs_1k.filter(pl.col('gene_id') == mut1k_orf).row(0)
             data.append((k, end - start, end100 - start100, end1k - start1k))
 
-
     data = pl.DataFrame(data, schema={'KO': pl.String,
                                       'length_wt': pl.Int32,
                                       'length_100': pl.Int32,
                                       'length_1k': pl.Int32})
-    diff = data.filter(pl.col('length_wt') != pl.col('length_1k')).sort('KO')
-
-    fig, ax = plt.subplots()
-    sns.boxplot(data=diff.melt(id_vars=['KO']),
-                    x='variable',
-                    y='value',
-                    boxprops=dict(alpha=.4, facecolor='w'),
-                    width=.2,
-                    ax=ax,
-                )
-
-    for _,s_wt,s_100,s_1k in diff.iter_rows():
-        color = 'k'
-        if s_wt < s_1k:
-            color = 'r'
-        elif abs(s_wt - s_1k) > 100:
-            color = 'g'
-        elif abs(s_wt - s_1k) < 10:
-            continue
-        ax.plot([0,1,2], [s_wt, s_100, s_1k], '-o', c=color, lw=0.7, alpha=0.3)
-
-    fig.savefig(f'plots/length_by_ko_checkm2_{tag}.png')
-
-    data = data.with_columns([
-        data['KO'].map_elements(nr_seqs_by_ko.get, return_dtype=pl.Int32).rename('nr_seqs')
-        ])
 
     zscores = []
     for ix in range(len(data)):
-        ko, s_wt, s_100, s_1k, nr_seqs = data.row(ix)
+        ko, s_wt, s_100, s_1k = data.row(ix)
         if ko not in aa_sizes_by_ko:
             continue
         db_size = np.array(aa_sizes_by_ko[ko])*3
@@ -149,7 +121,6 @@ for tag,_ in jugspace['INPUT_DATA']:
             (s_100 - db_size.mean())/db_size.std(),
             (s_1k - db_size.mean())/db_size.std(),
                         ))
-
 
     zscores = pl.DataFrame(zscores, schema={'KO': pl.String,
                                         'z_wt': pl.Float32,
@@ -171,13 +142,14 @@ for tag,_ in jugspace['INPUT_DATA']:
     ax.plot(X, [(zscores['z_wt'] < x).mean() for x in X], label='WT')
     ax.plot(X, [(zscores['z_100'] < x).mean() for x in X], label='100')
     ax.plot(X, [(zscores['z_1k'] < x).mean() for x in X], label='1k')
-    # ax.plot(X, X, ':k', label='y=x')
     ax.legend()
     ax.set_xlabel('KO length z-score')
     ax.set_ylabel('Fraction of genes (cumm)')
     fig.tight_layout()
     fig.savefig(f'plots/ko_zscores_{tag}.png')
 
-    zscores_thresh = pl.concat([(zscores.select(pl.col(pl.Float32)) < lim).sum().with_columns(lim=lim) for lim in [-2, -3, -4, -5, -6, -7, -8, -9, -10, -11, -12]])
+    zscores_thresh = pl.concat([
+                (zscores.select(pl.col(pl.Float32)) < lim).sum().with_columns(lim=lim)
+                    for lim in [-2, -3, -4, -5, -6, -7, -8, -9, -10, -11, -12]])
     print(tag)
     print(zscores_thresh)
