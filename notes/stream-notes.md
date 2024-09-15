@@ -14,6 +14,9 @@
 
 ## 2024-09-09
 
+- Recap: https://youtu.be/7HE_au3jYSY
+- Full stream: https://www.youtube.com/live/VwvZ5DEXV-E
+
 - Used [GMGCv1](https://gmgc.embl.de/) as database for KO sizes
 - Concatenated GMGCv1 DIAMOND outputs into a single file
 
