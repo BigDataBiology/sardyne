@@ -62,10 +62,52 @@ def concatenate_files(ofiles, ofile):
         unlink(f)
     return ofile
 
+@TaskGenerator
+def annotate_with_orf_lengths(ifile, fareference, ofile):
+    import gzip
+    import polars as pl
+    from fasta import fasta_iter
+    with gzip.open(ifile, 'rb') as f:
+        gmgc = pl.read_csv(f,
+                           separator='\t',
+                           has_header=False,
+                           columns=[0, 1, 2, 3, 4, 6, 7, 8, 9, ],
+                           new_columns=[
+                               'query', # 0
+                               'subject', # 1
+                               'identity', # 2
+                               'alignment_length', # 3
+                               'mismatches', # 4
+                               # 'gap_opens', # 5
+                               'q_start', # 6
+                               'q_end', # 7
+                               's_start', # 8
+                               's_end', # 9
+                               # 'evalue', # 10
+                               # 'bit_score', # 11
+                               ])
+
+    interesting_unigenes = set(gmgc['query'].to_list())
+    unigene_to_len = {}
+    for h,seq in fasta_iter(fareference):
+        if h in interesting_unigenes:
+            unigene_to_len[h] = len(seq)
+
+    gmgc = gmgc.with_columns([
+        gmgc['query'].map_elements(unigene_to_len.get, return_dtype=int).alias('gmgc_unigene_len_aa'),
+        ])
+
+    with gzip.open(ofile, 'wt') as of:
+        gmgc.write_csv(of, separator='\t')
+    return ofile
+
 chunks = split_fasta_file(GMGC_COMPLETE, 2_000_000)
 
 ko_chunks = []
 for ch in bvalue(chunks):
     ko_chunks.append(run_diamond(ch))
 
-concatenate_files(ko_chunks, 'outputs/GMGC10.complete.diamond.out.gz')
+concat_outs = concatenate_files(ko_chunks, 'outputs/GMGC10.complete.diamond.out.gz')
+annotate_with_orf_lengths(concat_outs,
+                          GMGC_COMPLETE,
+                          'outputs/GMGC10.complete.annotated.tsv.gz')

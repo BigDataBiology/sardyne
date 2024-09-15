@@ -31,42 +31,20 @@ def get_gene_positions(f):
                     'end': pl.Int32,
                     'is_reverse': pl.Boolean})
 
-with gzip.open('./outputs/GMGC10.complete.diamond.out.gz', 'rb') as f:
-    gmgc = pl.read_csv(f, separator='\t', has_header=False)
-gmgc.columns = ['query',
-                'subject',
-                'identity',
-                'alignment_length',
-                'mismatches',
-                'gap_opens',
-                'q_start',
-                'q_end',
-                's_start',
-                's_end',
-                'evalue',
-                'bit_score']
+with gzip.open('./outputs/GMGC10.complete.annotated.tsv.gz', 'rb') as f:
+    gmgc = pl.read_csv(f, separator='\t')
+
 gmgc = gmgc.with_columns([
-    gmgc['subject'].map_elements(lambda s: s.split('~')[1], return_dtype=str).alias('KO')
+    gmgc['subject'].str.split('~').list[1].alias('KO'),
     ])
-aa_sizes_by_ko = defaultdict(list)
 kos = set(gmgc.group_by('KO').len().filter(pl.col('len') > MIN_UNIGENES_PER_KO)['KO'].to_list())
 pre_len = len(gmgc)
 gmgc = gmgc.filter(pl.col('KO').is_in(kos))
 post_len = len(gmgc)
-print(f'Filtered {pre_len - post_len} unigenes (out of {pre_len}; {(pre_len - post_len)/pre_len:.2%})')
-
-interesting_unigenes = set(gmgc['query'].to_list())
-unigene_to_len = {}
-n = 0
-for h,seq in fasta_iter('../data/data/GMGC10.95nr.complete.faa.gz'):
-    n += 1
-    if h in interesting_unigenes:
-        unigene_to_len[h] = len(seq)
-print(f'{len(unigene_to_len):,} unigenes out of {n:,} are interesting (i.e., have KO match to a KO with >{MIN_UNIGENES_PER_KO} unigenes)')
 
 aa_sizes_by_ko = defaultdict(list)
-for ko, unigene in gmgc[['KO', 'query']].iter_rows():
-    aa_sizes_by_ko[ko].append(unigene_to_len[unigene])
+for ko, unigene_len in gmgc[['KO', 'gmgc_unigene_len_aa']].iter_rows():
+    aa_sizes_by_ko[ko].append(unigene_len)
 
 aa_sizes_by_ko = {k:np.array(v) for k,v in aa_sizes_by_ko.items()}
 for v in aa_sizes_by_ko.values():
