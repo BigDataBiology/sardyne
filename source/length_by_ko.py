@@ -17,6 +17,7 @@ _, jugspace = jug.init('simulate.py', 'simulate.jugdata')
 makedirs('plots', exist_ok=True)
 
 def get_gene_positions(f):
+    '''Extract gene positions from a Prodigal FASTA file'''
     data = []
     for line in open(f):
         if match := re.match(PRODIGAL_FASTA_HEADER_PAT, line):
@@ -24,12 +25,50 @@ def get_gene_positions(f):
             start = int(start)
             end = int(end)
             is_reverse = is_reverse == '-'
-            data.append((gene_id, start, end, is_reverse))
+            length = abs(end - start)
+            data.append((gene_id, start, end, length, is_reverse))
     return pl.DataFrame(data, schema={
                     'gene_id': pl.String,
                     'start': pl.Int32,
                     'end': pl.Int32,
+                    'length': pl.Int32,
                     'is_reverse': pl.Boolean})
+
+
+def load_diamond_outputs(diamond_outs):
+    '''Load DIAMOND output files
+
+    Parameters
+    ----------
+    diamond_outs: list of paths to DIAMOND output files
+
+    Returns
+    -------
+    polars.DataFrame
+    '''
+    diamond_out = pl.concat([
+        pl.read_csv(f, separator='\t', has_header=False)
+            for f in diamond_outs])
+    diamond_out.columns = ['query',
+                'subject',
+                'identity',
+                'alignment_length',
+                'mismatches',
+                'gap_opens',
+                'q_start',
+                'q_end',
+                's_start',
+                's_end',
+                'evalue',
+                'bit_score']
+
+    diamond_out = diamond_out.with_columns([
+        diamond_out['query'].str.split('Ω').list[0].alias('genome'),
+        diamond_out['query'].str.split('Ω').list[1].alias('orf'),
+        diamond_out['subject'].str.split('~').list[1].alias('KO')
+        ])
+    return diamond_out
+
 
 with gzip.open('./outputs/GMGC10.complete.annotated.tsv.gz', 'rb') as f:
     gmgc = pl.read_csv(f, separator='\t')
@@ -54,82 +93,43 @@ for v in aa_sizes_by_ko.values():
 nr_seqs_by_ko = dict(gmgc.group_by('KO').len().iter_rows())
 
 for tag,_ in jugspace['INPUT_DATA']:
-    f_wt = f'outputs/checkm2_{tag}_simulation/protein_files/mutated_000000.fna.faa'
-    f_100 = f'outputs/checkm2_{tag}_simulation/protein_files/mutated_000100.fna.faa'
-    f_1k = f'outputs/checkm2_{tag}_simulation/protein_files/mutated_001000.fna.faa'
-
-    diamond_out = pl.concat([ pl.read_csv(f, separator='\t', has_header=False)
-        for f in
-            glob(f'outputs/checkm2_{tag}_simulation/diamond_output/DIAMOND_RESULTS*.tsv')])
-    diamond_out.columns = ['query',
-                'subject',
-                'identity',
-                'alignment_length',
-                'mismatches',
-                'gap_opens',
-                'q_start',
-                'q_end',
-                's_start',
-                's_end',
-                'evalue',
-                'bit_score']
-
+    view_muts = [0, 100, 1000]
+    diamond_out = load_diamond_outputs(glob(f'outputs/checkm2_{tag}_simulation/diamond_output/DIAMOND_RESULTS*.tsv'))
     diamond_out = diamond_out.with_columns([
-        diamond_out['query'].str.split('Ω').list[0].alias('genome'),
-        diamond_out['query'].str.split('Ω').list[1].alias('orf'),
-        diamond_out['subject'].str.split('~').list[1].alias('KO')
+        diamond_out['genome'].map_elements(
+                                lambda g: int(g.split('_')[1].split('.')[0]),
+                                return_dtype=pl.Int32
+                                ).alias('nr_mutations')
         ])
-
-    wt = diamond_out.filter(pl.col('genome') == 'mutated_000000.fna')
-    mut100 = diamond_out.filter(pl.col('genome') == 'mutated_000100.fna')
-    mut1k = diamond_out.filter(pl.col('genome') == 'mutated_001000.fna')
-
-    wt_kos = set(wt['KO'].to_list())
-    mut100_kos = set(mut100['KO'].to_list())
-    mut1k_kos = set(mut1k['KO'].to_list())
-    orfs_wt = get_gene_positions(f_wt)
-    orfs_100 = get_gene_positions(f_100)
-    orfs_1k = get_gene_positions(f_1k)
     data = []
-    for k in (wt_kos & mut1k_kos & mut100_kos):
-        wt_sel = wt.filter(pl.col('KO') == k)
-        mut100_sel = mut100.filter(pl.col('KO') == k)
-        mut1k_sel = mut1k.filter(pl.col('KO') == k)
-        if len(wt_sel) == 1 and len(mut100_sel) == 1 and len(mut1k_sel) == 1:
-            [wt_orf] = wt_sel['orf']
-            [mut100_orf] = mut100_sel['orf']
-            [mut1k_orf] = mut1k_sel['orf']
-            _, start, end, _ = orfs_wt.filter(pl.col('gene_id') == wt_orf).row(0)
-            _, start100, end100, _ = orfs_100.filter(pl.col('gene_id') == mut100_orf).row(0)
-            _, start1k, end1k, _ = orfs_1k.filter(pl.col('gene_id') == mut1k_orf).row(0)
-            data.append((k, end - start, end100 - start100, end1k - start1k))
-
-    data = pl.DataFrame(data, schema={'KO': pl.String,
-                                      'length_wt': pl.Int32,
-                                      'length_100': pl.Int32,
-                                      'length_1k': pl.Int32})
+    for mut in view_muts:
+        diamond_out_mut = diamond_out.filter(pl.col('nr_mutations') == mut)
+        f = f'outputs/checkm2_{tag}_simulation/protein_files/mutated_{mut:06}.fna.faa'
+        orfs = get_gene_positions(f)
+        diamond_out_mut = diamond_out_mut.join(orfs, right_on='gene_id', left_on='orf')
+        data.append(diamond_out_mut[['nr_mutations', 'KO', 'length']])
+    data = pl.concat(data)
+    data = data.filter(pl.col('KO').is_in(aa_sizes_by_ko.keys()))
 
     zscores = []
     for ix in range(len(data)):
-        ko, s_wt, s_100, s_1k = data.row(ix)
-        if ko not in aa_sizes_by_ko:
-            continue
+        nr_muts, ko, s = data.row(ix)
         db_size = np.array(aa_sizes_by_ko[ko])*3
 
-        zscores.append((ko,
-            (s_wt - db_size.mean())/db_size.std(),
-            (s_100 - db_size.mean())/db_size.std(),
-            (s_1k - db_size.mean())/db_size.std(),
+        zscores.append((nr_muts,
+                        ko,
+                        (s - db_size.mean())/db_size.std(),
                         ))
 
-    zscores = pl.DataFrame(zscores, schema={'KO': pl.String,
-                                        'z_wt': pl.Float32,
-                                        'z_100': pl.Float32,
-                                        'z_1k': pl.Float32})
+    zscores = pl.DataFrame(zscores, schema={
+        'nr_muts': pl.Int32,
+        'KO': pl.String,
+        'z': pl.Float32,
+        })
     fig, ax = plt.subplots()
-    sns.boxplot(data=zscores.melt(id_vars=['KO']),
-                x='variable',
-                y='value',
+    sns.boxplot(data=zscores,
+                x='nr_muts',
+                y='z',
                 boxprops=dict(alpha=.4, facecolor='w'),
                 width=.2,
                 ax=ax,
@@ -139,9 +139,9 @@ for tag,_ in jugspace['INPUT_DATA']:
 
     fig,ax = plt.subplots()
     X = np.linspace(-12,12,1000)
-    ax.plot(X, [(zscores['z_wt'] < x).mean() for x in X], label='WT')
-    ax.plot(X, [(zscores['z_100'] < x).mean() for x in X], label='100')
-    ax.plot(X, [(zscores['z_1k'] < x).mean() for x in X], label='1k')
+    for lim,lab in [(0, 'WT'), (100, '100'), (1000, '1k')]:
+        sel = zscores.filter(pl.col('nr_muts') == lim)
+        ax.plot(X, [(sel['z'] < x).mean() for x in X], label=lab)
     ax.legend()
     ax.set_xlabel('KO length z-score')
     ax.set_ylabel('Fraction of genes (cumm)')
@@ -149,7 +149,13 @@ for tag,_ in jugspace['INPUT_DATA']:
     fig.savefig(f'plots/ko_zscores_{tag}.png')
 
     zscores_thresh = pl.concat([
-                (zscores.select(pl.col(pl.Float32)) < lim).sum().with_columns(lim=lim)
-                    for lim in [-2, -3, -4, -5, -6, -7, -8, -9, -10, -11, -12]])
+                zscores.with_columns([
+                        (zscores['z'] < lim).alias('bel_lim')
+                        ]) \
+                    .group_by('nr_muts') \
+                    .sum()[['nr_muts', 'bel_lim']] \
+                    .with_columns([pl.lit(lim).alias('lim')])
+                for lim in [-2, -3, -4, -5, -6, -7, -8, -9, -10, -11, -12]])
+    zscores_thresh = zscores_thresh.pivot(columns=['nr_muts'], values=['bel_lim'], index=['lim'])
     print(tag)
     print(zscores_thresh)
