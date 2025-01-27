@@ -7,6 +7,12 @@
 - Look at all KO hits (not just those that are unique to a genome)
 - Try filtering DIAMOND hits by position (i.e., only keep those that align near the start of the genes)
 
+## 2025-01-28
+
+- Since _E. coli_ is part of the database, we recover the exact genes
+- K02436 seems to have a relatively stable gene size in the GMGCv1 complete gene set (227-304 AA, with the mean 254 and std. dev of 8.2), but the E. coli hit is much shorter (148 AA)
+- K01232 is less clearly an outlier, but the GMGCv1 smallest hit **is the E. coli** hit at 212 (otherwise, mean is 443 and std. dev. 18.4)
+
 ## 2024-10-01
 
 - Cleanup the `length_by_ko.py` script: (1) use all ORF/KOs and (2) refactor and optimize the code
