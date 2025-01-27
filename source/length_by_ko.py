@@ -32,7 +32,8 @@ def get_gene_positions(f):
                     'start': pl.Int32,
                     'end': pl.Int32,
                     'length': pl.Int32,
-                    'is_reverse': pl.Boolean})
+                    'is_reverse': pl.Boolean},
+                    orient='row')
 
 
 def load_diamond_outputs(diamond_outs):
@@ -125,7 +126,8 @@ for tag,_ in jugspace['INPUT_DATA']:
         'nr_muts': pl.Int32,
         'KO': pl.String,
         'z': pl.Float32,
-        })
+        },
+        orient='row')
     fig, ax = plt.subplots()
     sns.boxplot(data=zscores,
                 x='nr_muts',
@@ -156,6 +158,6 @@ for tag,_ in jugspace['INPUT_DATA']:
                     .sum()[['nr_muts', 'bel_lim']] \
                     .with_columns([pl.lit(lim).alias('lim')])
                 for lim in [-2, -3, -4, -5, -6, -7, -8, -9, -10, -11, -12]])
-    zscores_thresh = zscores_thresh.pivot(columns=['nr_muts'], values=['bel_lim'], index=['lim'])
+    zscores_thresh = zscores_thresh.pivot(on=['nr_muts'], values=['bel_lim'], index=['lim'])
     print(tag)
-    print(zscores_thresh)
+    print(zscores_thresh['lim', '0', '100', '1000'])
