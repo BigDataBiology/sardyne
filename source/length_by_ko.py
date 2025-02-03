@@ -93,8 +93,10 @@ for v in aa_sizes_by_ko.values():
 
 nr_seqs_by_ko = dict(gmgc.group_by('KO').len().iter_rows())
 
+view_muts = [0, 100, 1000]
+zscores_outs = []
+esgs_fig,esgs_ax = plt.subplots()
 for tag,_ in jugspace['INPUT_DATA']:
-    view_muts = [0, 100, 1000]
     diamond_out = load_diamond_outputs(glob(f'outputs/checkm2_{tag}_simulation/diamond_output/DIAMOND_RESULTS*.tsv'))
     diamond_out = diamond_out.with_columns([
         diamond_out['genome'].map_elements(
@@ -102,8 +104,9 @@ for tag,_ in jugspace['INPUT_DATA']:
                                 return_dtype=pl.Int32
                                 ).alias('nr_mutations')
         ])
+    all_muts = sorted(set(diamond_out['nr_mutations']))
     data = []
-    for mut in view_muts:
+    for mut in all_muts:
         diamond_out_mut = diamond_out.filter(pl.col('nr_mutations') == mut)
         f = f'outputs/checkm2_{tag}_simulation/protein_files/mutated_{mut:06}.fna.faa'
         orfs = get_gene_positions(f)
@@ -128,6 +131,18 @@ for tag,_ in jugspace['INPUT_DATA']:
         'z': pl.Float32,
         },
         orient='row')
+    esgs = []
+    for mut in all_muts:
+        sel = zscores.filter((pl.col('nr_muts') == mut) & (pl.col('z') < -4)).select(pl.col('z').sum())
+        esgs.append(sel.item())
+    [ell] = esgs_ax.plot(all_muts, esgs, label=tag)
+    esgs_ax.plot(all_muts, [esgs[0] for _ in all_muts], label=None, linestyle='--', color=ell.get_color())
+    esgs_ax.set_xlabel('Number of mutations')
+    esgs_ax.set_ylabel('Sum of z-scores < -4')
+
+    view_muts = [0, 100, 1000]
+    zscores = zscores.filter(pl.col('nr_muts').is_in(view_muts))
+
     fig, ax = plt.subplots()
     sns.boxplot(data=zscores,
                 x='nr_muts',
@@ -159,5 +174,10 @@ for tag,_ in jugspace['INPUT_DATA']:
                     .with_columns([pl.lit(lim).alias('lim')])
                 for lim in [-2, -3, -4, -5, -6, -7, -8, -9, -10, -11, -12]])
     zscores_thresh = zscores_thresh.pivot(on=['nr_muts'], values=['bel_lim'], index=['lim'])
-    print(tag)
-    print(zscores_thresh['lim', '0', '100', '1000'])
+    zscores_outs.append(zscores_thresh.with_columns(tag=pl.lit(tag)))
+
+esgs_ax.legend()
+sns.despine(esgs_fig, trim=True)
+esgs_fig.tight_layout()
+esgs_fig.savefig('plots/esgs_m4.svg')
+esgs_fig.savefig('plots/esgs_m4.png')
