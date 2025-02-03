@@ -3,9 +3,14 @@
 ## Next streams
 
 - Attempt to find KOs with very stable gene sizes
-- Look more closely at KOs in E. coli with very short genes (K01232 & K02436)
 - Look at all KO hits (not just those that are unique to a genome)
 - Try filtering DIAMOND hits by position (i.e., only keep those that align near the start of the genes)
+- Explore variations of the ESGS metric (for example, what is the best threshold for the z-score?)
+
+## 2025-02-04
+
+- Proposed metric: sum of z-scores for gene sizes per KO below a certain threshold (e.g., -4). Proposed name: excess of short genes score (ESGS)
+- Plotted ESGS for a few example species
 
 ## 2025-01-28
 
