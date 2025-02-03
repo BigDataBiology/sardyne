@@ -1,24 +1,60 @@
 # Stream notes
 
-## Next stream
+## Next streams
 
-- Use [GMGCv1](https://gmgc.embl.de/) as database for KO sizes
+- Attempt to find KOs with very stable gene sizes
+- Look at all KO hits (not just those that are unique to a genome)
+- Try filtering DIAMOND hits by position (i.e., only keep those that align near the start of the genes)
+- Explore variations of the ESGS metric (for example, what is the best threshold for the z-score?)
 
-Required command to map GMGCv1 to KOs (using diamond, exactly same as checkM2):
+## 2025-02-04
 
-```bash
-conda run -n checkm2 \
-    diamond blastp \
-    --outfmt 6 \
-    --max-target-seqs 1 \
-    --query ../data/data/GMGC10.95nr.complete.10k.faa.gz \
-    -o DIAMOND_RESULTS.tsv \
-    --threads 12 \
-    --db /home/luispedro/databases/CheckM2_database/uniref100.KO.1.dmnd \
-    --query-cover 80 --subject-cover 80 --id 30 --evalue 1e-05 --block-size 2.0
-```
+- Proposed metric: sum of z-scores for gene sizes per KO below a certain threshold (e.g., -4). Proposed name: excess of short genes score (ESGS)
+- Plotted ESGS for a few example species
+
+## 2025-01-28
+
+- Since _E. coli_ is part of the database, we recover the exact genes
+- K02436 seems to have a relatively stable gene size in the GMGCv1 complete gene set (227-304 AA, with the mean 254 and std. dev of 8.2), but the E. coli hit is much shorter (148 AA)
+- K01232 is less clearly an outlier, but the GMGCv1 smallest hit **is the E. coli** hit at 212 (otherwise, mean is 443 and std. dev. 18.4)
+
+## 2024-10-01
+
+- Cleanup the `length_by_ko.py` script: (1) use all ORF/KOs and (2) refactor and optimize the code
+
+## 2024-09-16
+
+- Precompute GMGCv1 KO sizes to avoid rerunning every time (integrated with run-gmgc-diamond Jug script)
+- Cleanup `length_by_ko.py` script
+
+## 2024-09-09
+
+- Recap: https://youtu.be/7HE_au3jYSY
+- Full stream: https://www.youtube.com/live/VwvZ5DEXV-E
+
+- Used [GMGCv1](https://gmgc.embl.de/) as database for KO sizes
+- Concatenated GMGCv1 DIAMOND outputs into a single file
+
+## 2024-09-03
+
+- Recap: https://youtu.be/DDfLfcmnpVI
+- Full stream: https://www.youtube.com/live/LLeJDXkNFBY
+
+- Split [GMGCv1](https://gmgc.embl.de/) into chunks of 2m sequences to make the KO mapping more robust
+- Checked zscores per KO for gene sizes (instead of percentiles): appears much more stable across different species.
+
+## 2024-08-13
+
+- Recap: https://youtu.be/a0P3La0w91g
+- Full stream: https://www.youtube.com/live/h_BpiVLNy7M
+
+- Mapped GMGCv1 to KOs using diamond (same version as checkM2)
+- Explored data. Looked at the distribution of increase in gene sizes vs. decrease. It is not symmetric as it is easier to introduce a stop codon than to read through random DNA without hitting a stop codon sooner or later.
 
 ## 2024-08-06
+
+- Recap: https://youtu.be/d2htGMZOVBY
+- Full stream: https://youtube.com/live/anSEVzkygIU
 
 - Downloaded GMGCv1 database (complete genes only, amino acid sequences)
 - Checked percentiles of gene sizes by KO using checkM2 reference itself
