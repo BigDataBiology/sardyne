@@ -2,10 +2,19 @@
 
 ## Next streams
 
+- Use all representative genomes from ProGenomes3
+- Use the dog gut MAGs from Coelho et al., 2018 (eventually expand to other datasets)
 - Attempt to find KOs with very stable gene sizes
 - Look at all KO hits (not just those that are unique to a genome)
 - Try filtering DIAMOND hits by position (i.e., only keep those that align near the start of the genes)
 - Explore variations of the ESGS metric (for example, what is the best threshold for the z-score?)
+
+## 2025-02-11
+
+- Cleaned up the code from last week & merged to `main`
+- Expanded the dataset to a few more hand-picked species, but also downloaded the full ProGenomes3 representative set
+- Downloaded dog gut MAGs from [Coelho et al., 2018](https://dx.doi.org/10.1186/s40168-018-0450-3)
+
 
 ## 2025-02-04
 
