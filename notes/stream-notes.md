@@ -9,6 +9,8 @@
 
 ## 2025-02-04
 
+Recap: https://youtu.be/iXQRjUq4kAE
+
 - Proposed metric: sum of z-scores for gene sizes per KO below a certain threshold (e.g., -4). Proposed name: excess of short genes score (ESGS)
 - Plotted ESGS for a few example species
 
