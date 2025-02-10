@@ -76,11 +76,11 @@ def create_mutated_file(oname, seq, n):
 @TaskGenerator
 def read_seq(ifile):
     '''Read a sequence from a FASTA file, checking that there is only one sequence'''
-    headers = []
-    for h, seq in fasta_iter(ifile):
-        headers.append(h)
-    assert len(headers) == 1
-    return seq
+    seqs = []
+    for _, seq in fasta_iter(ifile):
+        seqs.append(seq)
+    padding = ''.join(['N' for _ in range(300)])
+    return padding.join(seqs)
 
 def random_dna_same_len_as(seq):
     return ''.join(random.choices('ACGT', k=len(seq)))
@@ -154,6 +154,9 @@ INPUT_DATA = [
         ('listeria_monocytogenes', '169963.SAMEA3138329.fna.gz'),
         ('campylobacter_jejuni', '192222.SAMEA1705929.fna.gz'),
         ('staphylococcus_aureus', '93061.SAMN02604235.fna.gz'),
+        ('prevotella_copri', '165179.SAMEA5853203.fna.gz'),
+        ('fusobacterium_mortiferum', '469616.SAMN02463687.fna.gz'),
+        ('streptococcus_pneumoniae', '488222.SAMN02603444.fna.gz'),
         ]
 
 nr_muts = list(range(0, 5_000, 25))
