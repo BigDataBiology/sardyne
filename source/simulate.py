@@ -159,7 +159,7 @@ def get_gene_positions(f: str):
         if match := re.match(PRODIGAL_FASTA_HEADER_PAT, line):
             gene_id, start, end, is_reverse = match.groups()
             start = int(start)
-            end = int(end)
+            end = int(end) + 1
             is_reverse = is_reverse == '-'
             length = abs(end - start)
             data.append((gene_id, start, end, length, is_reverse))
