@@ -11,6 +11,9 @@
 
 ## 2025-02-11
 
+Recap: https://youtu.be/OE6BSEDDqd0
+Live: https://www.youtube.com/live/C5zeyqYQGbg
+
 - Cleaned up the code from last week & merged to `main`
 - Expanded the dataset to a few more hand-picked species, but also downloaded the full ProGenomes3 representative set
 - Downloaded dog gut MAGs from [Coelho et al., 2018](https://dx.doi.org/10.1186/s40168-018-0450-3)
@@ -19,6 +22,7 @@
 ## 2025-02-04
 
 Recap: https://youtu.be/iXQRjUq4kAE
+Live: https://www.youtube.com/live/rQp-OkmpHxY
 
 - Proposed metric: sum of z-scores for gene sizes per KO below a certain threshold (e.g., -4). Proposed name: excess of short genes score (ESGS)
 - Plotted ESGS for a few example species
