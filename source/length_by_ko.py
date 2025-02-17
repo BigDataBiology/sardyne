@@ -9,31 +9,10 @@ import re
 from glob import glob
 import jug
 
-PRODIGAL_FASTA_HEADER_PAT = r'^>(\S+) # (\d+) # (\d+) # (-?)1 # '
 MIN_UNIGENES_PER_KO = 100
 
 _, jugspace = jug.init('simulate.py', 'simulate.jugdata')
 makedirs('plots', exist_ok=True)
-
-def get_gene_positions(f):
-    '''Extract gene positions from a Prodigal FASTA file'''
-    data = []
-    for line in open(f):
-        if match := re.match(PRODIGAL_FASTA_HEADER_PAT, line):
-            gene_id, start, end, is_reverse = match.groups()
-            start = int(start)
-            end = int(end)
-            is_reverse = is_reverse == '-'
-            length = abs(end - start)
-            data.append((gene_id, start, end, length, is_reverse))
-    return pl.DataFrame(data, schema={
-                    'gene_id': pl.String,
-                    'start': pl.Int32,
-                    'end': pl.Int32,
-                    'length': pl.Int32,
-                    'is_reverse': pl.Boolean},
-                    orient='row')
-
 
 def load_diamond_outputs(diamond_outs):
     '''Load DIAMOND output files
@@ -111,17 +90,14 @@ ko_sizes = pl.DataFrame(
 view_muts = [0, 100, 1000]
 zscores_outs = []
 esgs_fig,esgs_ax = plt.subplots()
+
 for tag,_ in jugspace['INPUT_DATA']:
     diamond_out = load_diamond_outputs(glob(f'outputs/checkm2_{tag}_simulation/diamond_output/DIAMOND_RESULTS*.tsv'))
     all_muts = sorted(set(diamond_out['nr_mutations']))
-    data = []
-    for mut in all_muts:
-        diamond_out_mut = diamond_out.filter(pl.col('nr_mutations') == mut)
-        f = f'outputs/checkm2_{tag}_simulation/protein_files/mutated_{mut:06}.fna.faa'
-        orfs = get_gene_positions(f)
-        diamond_out_mut = diamond_out_mut.join(orfs, right_on='gene_id', left_on='orf')
-        data.append(diamond_out_mut[['nr_mutations', 'KO', 'length']])
-    data = pl.concat(data)
+    with gzip.open(f'outputs/checkm2_{tag}_simulation/all_gene_positions.tsv.gz', 'rb') as f:
+        all_gene_positions = pl.read_csv(f, separator='\t')
+
+    data = diamond_out.join(all_gene_positions, right_on='gene_id', left_on='orf')
     data = data.filter(pl.col('KO').is_in(aa_sizes_by_ko.keys()))
 
     zscores = data.join(ko_sizes, left_on='KO', right_on='KO').with_columns(

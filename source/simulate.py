@@ -3,6 +3,7 @@ from fasta import fasta_iter
 import random
 import gzip
 import tempfile
+import re
 import os
 
 def prodigal_gene_sizes(input_file):
@@ -148,6 +149,56 @@ def run_checkm2(tag, seq, nr_muts):
                      ])
     return odir
 
+
+PRODIGAL_FASTA_HEADER_PAT = r'^>(\S+) # (\d+) # (\d+) # (-?)1 # '
+def get_gene_positions(f: str):
+    '''Extract gene positions from a Prodigal FASTA file'''
+    import polars as pl
+    data = []
+    for line in open(f):
+        if match := re.match(PRODIGAL_FASTA_HEADER_PAT, line):
+            gene_id, start, end, is_reverse = match.groups()
+            start = int(start)
+            end = int(end)
+            is_reverse = is_reverse == '-'
+            length = abs(end - start)
+            data.append((gene_id, start, end, length, is_reverse))
+    return pl.DataFrame(data, schema={
+                    'gene_id': pl.String,
+                    'start': pl.Int32,
+                    'end': pl.Int32,
+                    'length': pl.Int32,
+                    'is_reverse': pl.Boolean},
+                    orient='row')
+
+@TaskGenerator
+def get_all_gene_positions(c2_odir, nr_muts):
+    from glob import glob
+    import polars as pl
+    partials = []
+
+    faas = sorted(glob(f'{c2_odir}/protein_files/*.faa'))
+    assert len(faas) == len(nr_muts)
+    for f in faas:
+        match = re.match(r'.*mutated_(\d+).fna.faa', f)
+        nr_mut = int(match.group(1))
+        partials.append(
+            get_gene_positions(f).with_columns(
+            nr_mutations=pl.lit(nr_mut)
+            ))
+    positions = pl.concat(partials)
+    oname = f'{c2_odir}/all_gene_positions.tsv.gz'
+    with gzip.open(f'{c2_odir}/all_gene_positions.tsv.gz', 'wb') as f:
+        positions.write_csv(f, separator='\t')
+
+    # Not 100% safe as we can get to a state where there is an
+    # interruption in the cleanup loop, leaving the process in a bad
+    # state
+    for f in faas:
+        os.unlink(f)
+    return oname
+
+
 INPUT_DATA = [
         ('ecoli_k12', '511145.SAMN02604091.fna.gz'),
         ('bacillus_subtilis', '1052585.SAMN02603352.fna.gz'),
@@ -169,7 +220,9 @@ for tag, fname in INPUT_DATA:
     gene_sizes[tag] = []
     for i in nr_muts:
         gene_sizes[tag].append(prodigal_gene_sizes_on_mut(seq, i))
-    run_checkm2(tag, seq, nr_muts)
+    c2_odir = run_checkm2(tag, seq, nr_muts)
+    get_all_gene_positions(c2_odir, nr_muts)
+
 
     for method in ['uniform', 'markov2', 'markov4']:
         random_file = create_random_file(tag, seq, method)
