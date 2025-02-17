@@ -1,4 +1,4 @@
-from jug import Task, TaskGenerator
+from jug import Task, TaskGenerator, bvalue
 from fasta import fasta_iter
 import random
 import gzip
@@ -6,38 +6,39 @@ import tempfile
 import re
 import os
 
-def prodigal_gene_sizes(input_file):
-    '''Run prodigal and return the gene sizes (in nucleotides)'''
-    import subprocess
-    import numpy as np
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        aa_out = f'{tmpdirname}/prodigal.faa'
-        nt_out = f'{tmpdirname}/prodigal.fna'
-        prodigal_out = f'{tmpdirname}/prodigal.txt'
-        prodigal_err = f'{tmpdirname}/prodigal.err'
-        zcat_p = subprocess.Popen(['zcat', input_file], stdout=subprocess.PIPE)
-        with open(prodigal_err, 'w') as err:
-            prodigal_p = subprocess.Popen(
-                ['prodigal',
-                     '-a', aa_out,
-                     '-d', nt_out,
-                     '-o', prodigal_out,
-                 ],
-                stderr=err,
-                stdin=zcat_p.stdout
-                )
-        zcat_p.wait()
-        prodigal_p.wait()
-        gene_sizes = []
-        for h, seq in fasta_iter(nt_out):
-            gene_sizes.append(len(seq))
-        return np.array(gene_sizes)
+
+def select_every(g_id: str, n: int):
+    import hashlib
+    h = hashlib.sha256()
+    h.update(b'sardyne')
+    h.update(g_id.encode('ascii'))
+    h = int(h.hexdigest(), 16)
+    return h % n == 0
+
 
 @TaskGenerator
-def prodigal_gene_sizes_on_mut(input_file, nr_mutations):
-    with tempfile.TemporaryDirectory() as tdir:
-        create_mutated_file(f'{tdir}/mutated.fna.gz', input_file, nr_mutations)
-        return prodigal_gene_sizes(f'{tdir}/mutated.fna.gz')
+def expand_progenomes3():
+    os.makedirs('../data/data/progenomes3.expanded', exist_ok=True)
+
+    prev = 'x'
+    seen = set()
+    for h, seq in fasta_iter('../data/data/progenomes3.contigs.representatives.fasta.bz2'):
+        tokens = h.split('.')
+        assert len(tokens) == 3
+        g_id = '.'.join(tokens[:2])
+        if g_id != prev:
+            prev = g_id
+            if select_every(g_id, 100):
+                oname = f'../data/data/progenomes3.expanded/{g_id}.fna.gz'
+                out = gzip.open(oname, 'wt')
+                assert oname not in seen
+                seen.add(oname)
+            else:
+                out = None
+        if out is not None:
+            out.write(f'>{h}\n{seq}\n')
+    return sorted(seen)
+
 
 def mutate1(seq : list[str]) -> None:
     '''Mutate a sequence in place using a simple model'''
@@ -212,18 +213,9 @@ INPUT_DATA = [
 
 nr_muts = list(range(0, 5_000, 25))
 
-gene_sizes = {}
-random_gene_sizes = {}
-for tag, fname in INPUT_DATA:
-    ifile = f'../data/genomes/{fname}'
+input_genomes = bvalue(expand_progenomes3())
+for ifile in input_genomes:
+    tag = ifile.split('/')[-1].removesuffix('.fna.gz')
     seq = read_seq(ifile)
-    gene_sizes[tag] = []
-    for i in nr_muts:
-        gene_sizes[tag].append(prodigal_gene_sizes_on_mut(seq, i))
     c2_odir = run_checkm2(tag, seq, nr_muts)
     get_all_gene_positions(c2_odir, nr_muts)
-
-
-    for method in ['uniform', 'markov2', 'markov4']:
-        random_file = create_random_file(tag, seq, method)
-        random_gene_sizes[tag, method] = Task(prodigal_gene_sizes, random_file)
