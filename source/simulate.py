@@ -18,7 +18,7 @@ def select_every(g_id: str, n: int):
 
 
 @TaskGenerator
-def expand_progenomes3():
+def expand_progenomes3(n):
     os.makedirs('../data/data/progenomes3.expanded', exist_ok=True)
 
     prev = 'x'
@@ -29,7 +29,7 @@ def expand_progenomes3():
         g_id = '.'.join(tokens[:2])
         if g_id != prev:
             prev = g_id
-            if select_every(g_id, 100):
+            if select_every(g_id, n):
                 oname = f'../data/data/progenomes3.expanded/{g_id}.fna.gz'
                 out = gzip.open(oname, 'wt')
                 assert oname not in seen
@@ -214,7 +214,7 @@ INPUT_DATA = [
 
 nr_muts = list(range(0, 5_000, 25))
 
-input_genomes = bvalue(expand_progenomes3())
+input_genomes = bvalue(expand_progenomes3(800))
 for ifile in input_genomes:
     tag = ifile.split('/')[-1].removesuffix('.fna.gz')
     seq = read_seq(ifile)
