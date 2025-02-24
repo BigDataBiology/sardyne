@@ -9,6 +9,8 @@ import re
 from glob import glob
 import jug
 
+PLOT_KO_LENGTHS_BOXPLOT = False
+PLOT_KO_LENGTHS_CUMMDIST = False
 MIN_UNIGENES_PER_KO = 100
 
 _, jugspace = jug.init('simulate.py', 'simulate.jugdata')
@@ -89,10 +91,14 @@ ko_sizes = pl.DataFrame(
 
 view_muts = [0, 100, 1000]
 zscores_outs = []
+all_zscores = []
+all_esgs = []
 esgs_fig,esgs_ax = plt.subplots()
 
 for ifile in jugspace['input_genomes']:
     tag = ifile.split('/')[-1].removesuffix('.fna.gz')
+    if tag == '28903.SAMN15246517':
+        break
     diamond_out = load_diamond_outputs(glob(f'outputs/checkm2_{tag}_simulation/diamond_output/DIAMOND_RESULTS*.tsv'))
     all_muts = sorted(set(diamond_out['nr_mutations']))
     with gzip.open(f'outputs/checkm2_{tag}_simulation/all_gene_positions.tsv.gz', 'rb') as f:
@@ -112,33 +118,34 @@ for ifile in jugspace['input_genomes']:
 
     [ell] = esgs_ax.plot(all_muts, esgs, label=tag)
     esgs_ax.plot(all_muts, [esgs[0] for _ in all_muts], label=None, linestyle='--', color=ell.get_color())
-    esgs_ax.set_xlabel('Number of mutations')
-    esgs_ax.set_ylabel('Sum of z-scores < -4')
+    all_esgs.append(pl.DataFrame({'nr_mutations': all_muts, 'esg': esgs}).with_columns(tag=pl.lit(tag)))
 
-    view_muts = [0, 100, 1000]
-    zscores = zscores.filter(pl.col('nr_mutations').is_in(view_muts))
+    all_zscores.append(zscores.with_columns(tag=pl.lit(tag)))
 
-    fig, ax = plt.subplots()
-    sns.boxplot(data=zscores,
-                x='nr_mutations',
-                y='z',
-                boxprops=dict(alpha=.4, facecolor='w'),
-                width=.2,
-                ax=ax,
-                )
-    ax.set_title(f'z-scores for KO lengths ({tag})')
-    fig.savefig(f'plots/length_by_ko_checkm2_zscore_{tag}.png')
+    if PLOT_KO_LENGTHS_BOXPLOT:
+        fig, ax = plt.subplots()
+        sns.boxplot(data=zscores.filter(pl.col('nr_mutations').is_in(view_muts)),
+                    x='nr_mutations',
+                    y='z',
+                    boxprops=dict(alpha=.4, facecolor='w'),
+                    width=.2,
+                    ax=ax,
+                    )
+        ax.set_title(f'z-scores for KO lengths ({tag})')
+        fig.savefig(f'plots/length_by_ko_checkm2_zscore_{tag}.png')
 
-    fig,ax = plt.subplots()
-    X = np.linspace(-12,12,1000)
-    for lim,lab in [(0, 'WT'), (100, '100'), (1000, '1k')]:
-        sel = zscores.filter(pl.col('nr_mutations') == lim)
-        ax.plot(X, [(sel['z'] < x).mean() for x in X], label=lab)
-    ax.legend()
-    ax.set_xlabel('KO length z-score')
-    ax.set_ylabel('Fraction of genes (cumm)')
-    fig.tight_layout()
-    fig.savefig(f'plots/ko_zscores_{tag}.png')
+    if PLOT_KO_LENGTHS_CUMMDIST:
+        fig,ax = plt.subplots()
+        X = np.linspace(-12,12,1000)
+        for lim,lab in [(0, 'WT'), (100, '100'), (1000, '1k')]:
+            sel = zscores.filter(pl.col('nr_mutations') == lim)
+            ax.plot(X, [(sel['z'] < x).mean() for x in X], label=lab)
+        ax.legend()
+        ax.set_xlabel('KO length z-score')
+        ax.set_ylabel('Fraction of genes (cumm)')
+        ax.set_title(f'z-score distribution for KO lengths ({tag})')
+        fig.tight_layout()
+        fig.savefig(f'plots/ko_zscores_{tag}.png')
 
     zscores_thresh = pl.concat([
                 zscores.with_columns([
@@ -151,8 +158,14 @@ for ifile in jugspace['input_genomes']:
     zscores_thresh = zscores_thresh.pivot(on=['nr_mutations'], values=['bel_lim'], index=['lim'])
     zscores_outs.append(zscores_thresh.with_columns(tag=pl.lit(tag)))
 
+all_esgs = pl.concat(all_esgs)
+all_zscores = pl.concat(all_zscores)
+
+esgs_ax.set_xlabel('Number of mutations')
+esgs_ax.set_ylabel('Sum of z-scores < -4')
 esgs_ax.legend()
 sns.despine(esgs_fig, trim=True)
 esgs_fig.tight_layout()
 esgs_fig.savefig('plots/esgs_m4.svg')
 esgs_fig.savefig('plots/esgs_m4.png')
+
