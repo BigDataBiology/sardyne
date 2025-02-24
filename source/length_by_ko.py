@@ -91,7 +91,8 @@ view_muts = [0, 100, 1000]
 zscores_outs = []
 esgs_fig,esgs_ax = plt.subplots()
 
-for tag,_ in jugspace['INPUT_DATA']:
+for ifile in jugspace['input_genomes']:
+    tag = ifile.split('/')[-1].removesuffix('.fna.gz')
     diamond_out = load_diamond_outputs(glob(f'outputs/checkm2_{tag}_simulation/diamond_output/DIAMOND_RESULTS*.tsv'))
     all_muts = sorted(set(diamond_out['nr_mutations']))
     with gzip.open(f'outputs/checkm2_{tag}_simulation/all_gene_positions.tsv.gz', 'rb') as f:
