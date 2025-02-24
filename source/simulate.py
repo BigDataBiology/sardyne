@@ -6,6 +6,7 @@ import tempfile
 import re
 import os
 
+NR_CHECKM2_THREADS = 8
 
 def select_every(g_id: str, n: int):
     import hashlib
@@ -143,7 +144,7 @@ def run_checkm2(tag, seq, nr_muts):
         subprocess.check_call([
             'conda', 'run', '-n', 'checkm2',
                 'checkm2', 'predict',
-                    '--threads', '8',
+                    '--threads', str(NR_CHECKM2_THREADS),
                      '--input', checkm2_idir,
                      '-x', 'fna.gz',
                      '--output-directory', odir,
