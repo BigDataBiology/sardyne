@@ -10,6 +10,9 @@
 
 ## 2025-02-18
 
+Recap: https://youtu.be/8E0DTEPSUhw
+Live: https://youtube.com/live/cLDxd6EyLPo
+
 - Cleaned code to remove redundancy
 - Save fewer intermediate files to enable scaling up
 - Use a selection of representative genomes from ProGenomes3 (1%)
