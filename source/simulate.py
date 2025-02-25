@@ -142,7 +142,7 @@ def run_checkm2(tag, seq, nr_muts):
         odir = f'outputs/checkm2_{tag}_simulation'
         shutil.rmtree(odir, ignore_errors=True)
         subprocess.check_call([
-            'conda', 'run', '-n', 'checkm2',
+            'pixi', 'run', '--environment', 'checkm2',
                 'checkm2', 'predict',
                     '--threads', str(NR_CHECKM2_THREADS),
                      '--input', checkm2_idir,

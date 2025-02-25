@@ -4,3 +4,7 @@
 /source/outputs/
 __pycache__/
 .jugstatus.sqlite3
+
+# pixi environments
+.pixi
+*.egg-info
