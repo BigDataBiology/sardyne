@@ -8,6 +8,13 @@
 - Try filtering DIAMOND hits by position (i.e., only keep those that align near the start of the genes)
 - Explore variations of the ESGS metric (for example, what is the best threshold for the z-score?)
 
+## 2025-02-25
+
+- Updated to pixi (from conda)
+- Cleaned plotting code to avoid creating too many plots
+- Browsed some outliers
+- Added the special case microbes (e.coli et al) back into the analysis
+
 ## 2025-02-18
 
 Recap: https://youtu.be/8E0DTEPSUhw
