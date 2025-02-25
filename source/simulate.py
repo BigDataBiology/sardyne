@@ -18,27 +18,35 @@ def select_every(g_id: str, n: int):
 
 
 @TaskGenerator
-def expand_progenomes3(n):
+def expand_progenomes3(n, allow_list):
     os.makedirs('../data/data/progenomes3.expanded', exist_ok=True)
+
+    allow_list = {g_id:tag for tag, g_id in allow_list}
 
     prev = 'x'
     seen = set()
+    tags = {}
     for h, seq in fasta_iter('../data/data/progenomes3.contigs.representatives.fasta.bz2'):
         tokens = h.split('.')
         assert len(tokens) == 3
         g_id = '.'.join(tokens[:2])
         if g_id != prev:
             prev = g_id
-            if select_every(g_id, n):
+            if select_every(g_id, n) or g_id in allow_list:
                 oname = f'../data/data/progenomes3.expanded/{g_id}.fna.gz'
                 out = gzip.open(oname, 'wt')
                 assert oname not in seen
                 seen.add(oname)
+                if g_id in allow_list:
+                    tags[oname] = allow_list[g_id]
+                else:
+                    tags[oname] = g_id
             else:
                 out = None
         if out is not None:
             out.write(f'>{h}\n{seq}\n')
-    return sorted(seen)
+    seen = sorted(seen)
+    return [(seen, tags[oname]) for oname in seen]
 
 
 def mutate1(seq : list[str]) -> None:
@@ -201,22 +209,21 @@ def get_all_gene_positions(c2_odir, nr_muts):
     return oname
 
 
-INPUT_DATA = [
-        ('ecoli_k12', '511145.SAMN02604091.fna.gz'),
-        ('bacillus_subtilis', '1052585.SAMN02603352.fna.gz'),
-        ('listeria_monocytogenes', '169963.SAMEA3138329.fna.gz'),
-        ('campylobacter_jejuni', '192222.SAMEA1705929.fna.gz'),
-        ('staphylococcus_aureus', '93061.SAMN02604235.fna.gz'),
-        ('prevotella_copri', '165179.SAMEA5853203.fna.gz'),
-        ('fusobacterium_mortiferum', '469616.SAMN02463687.fna.gz'),
-        ('streptococcus_pneumoniae', '488222.SAMN02603444.fna.gz'),
+SPECIAL_MICROBES = [
+        ('ecoli_k12', '511145.SAMN02604091'),
+        ('bacillus_subtilis', '1052585.SAMN02603352'),
+        ('listeria_monocytogenes', '169963.SAMEA3138329'),
+        ('campylobacter_jejuni', '192222.SAMEA1705929'),
+        ('staphylococcus_aureus', '93061.SAMN02604235'),
+        ('prevotella_copri', '165179.SAMEA5853203'),
+        ('fusobacterium_mortiferum', '469616.SAMN02463687'),
+        ('streptococcus_pneumoniae', '488222.SAMN02603444'),
         ]
 
 nr_muts = list(range(0, 5_000, 25))
 
-input_genomes = bvalue(expand_progenomes3(800))
-for ifile in input_genomes:
-    tag = ifile.split('/')[-1].removesuffix('.fna.gz')
+input_genomes = bvalue(expand_progenomes3(200, SPECIAL_MICROBES))
+for ifile,tag in input_genomes:
     seq = read_seq(ifile)
     c2_odir = run_checkm2(tag, seq, nr_muts)
     get_all_gene_positions(c2_odir, nr_muts)

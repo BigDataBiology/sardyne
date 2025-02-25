@@ -95,10 +95,7 @@ all_zscores = []
 all_esgs = []
 esgs_fig,esgs_ax = plt.subplots()
 
-for ifile in jugspace['input_genomes']:
-    tag = ifile.split('/')[-1].removesuffix('.fna.gz')
-    if tag == '28903.SAMN15246517':
-        break
+for ifile, tag in jugspace['input_genomes']:
     diamond_out = load_diamond_outputs(glob(f'outputs/checkm2_{tag}_simulation/diamond_output/DIAMOND_RESULTS*.tsv'))
     all_muts = sorted(set(diamond_out['nr_mutations']))
     with gzip.open(f'outputs/checkm2_{tag}_simulation/all_gene_positions.tsv.gz', 'rb') as f:
