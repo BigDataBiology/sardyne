@@ -5,7 +5,6 @@ import numpy as np
 from collections import defaultdict
 import seaborn as sns
 from matplotlib import pyplot as plt
-import re
 from glob import glob
 import jug
 
