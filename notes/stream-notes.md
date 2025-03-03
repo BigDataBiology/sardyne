@@ -10,6 +10,9 @@
 
 ## 2025-02-25
 
+Recap: https://youtu.be/1GV5VpvNkTI
+Live: https://www.youtube.com/watch?v=3EibnfuPUMc
+
 - Updated to pixi (from conda)
 - Cleaned plotting code to avoid creating too many plots
 - Browsed some outliers
