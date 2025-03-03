@@ -8,6 +8,14 @@
 - Try filtering DIAMOND hits by position (i.e., only keep those that align near the start of the genes)
 - Explore variations of the ESGS metric (for example, what is the best threshold for the z-score?)
 
+## 2025-03-04
+
+Live: https://www.youtube.com/watch?v=YDNmvQpQ2DI
+
+- Added eggnogmapper and downloaded its database
+- Explored how gene sequences change with (simulated) mutations (in `wip` branch)
+
+
 ## 2025-02-25
 
 Recap: https://youtu.be/1GV5VpvNkTI
