@@ -46,7 +46,7 @@ def expand_progenomes3(n, allow_list):
         if out is not None:
             out.write(f'>{h}\n{seq}\n')
     seen = sorted(seen)
-    return [(seen, tags[oname]) for oname in seen]
+    return [(oname, tags[oname]) for oname in seen]
 
 
 def mutate1(seq : list[str]) -> None:
