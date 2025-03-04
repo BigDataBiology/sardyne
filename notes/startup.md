@@ -1,22 +1,34 @@
 # Set up environment
 
-```bash
-conda create -n sardyne python=3.11 \
-    jug polars matplotlib numpy seaborn requests \
-    prodigal pyrodigal ipython
-```
-
-*Note*: checkM2 requires Python &lt;3.9, so we will install it in another environment.
-
-## Installing checkM2
-
-To install checkM2, use the following commands:
+We are using [pixi](https://pixi.sh/). Therefore, you should be able to activate the environment by running the following command:
 
 ```bash
-conda create -n checkm2 bioconda::checkm2
-conda activate checkm2
-checkm2 database --download
+pixi shell --environment sardyne
 ```
 
-The `checkm2 database --download` command will download the latest version of the checkM2 database. This database is required for checkM2 to work properly.
+## Installing checkM2 & eggnogmapper
+
+### checkM2
+
+*Note*: checkM2 requires Python &lt;3.9, so it is installed in a separate environment (`checkm2`). Before running it, you need to download the database.
+
+```bash
+pixi run --environment checkm2 checkm2 checkm2 database --download
+```
+
+This database is required for checkM2 to work properly.
+
+### eggnogmapper
+
+Eggnogmapper does not require a separate environment, but it does require the database to be downloaded.
+
+We will download it to `data/emapper-data`:
+
+```bash
+pixi run --environment sardyne
+
+cd data
+download_eggnog_data.py --data_dir emapper-data
+```
+
 

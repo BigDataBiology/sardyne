@@ -42,7 +42,17 @@ dowload_from_progenomes('169963', 'SAMEA3138329')
 dowload_from_progenomes('192222', 'SAMEA1705929')
 # S. aureus
 dowload_from_progenomes('93061', 'SAMN02604235')
+# P. copri
+dowload_from_progenomes('165179', 'SAMEA5853203')
+# F. mortiferum
+dowload_from_progenomes('469616', 'SAMN02463687')
+# Streptococcus pneumoniae
+dowload_from_progenomes('488222', 'SAMN02603444')
 
 download_file('https://data.ace.uq.edu.au/public/misc_downloads/annotree/r83/uniref100.KO.faa', 'uniref100.KO.faa')
 
 download_file('https://gmgc.embl.de/downloads/v1.0/subcatalogs/GMGC10.95nr.complete.faa.gz', 'GMGC10.95nr.complete.faa.gz')
+
+download_file('https://swifter.embl.de/~fullam/spire/compiled/Coelho_2018_dog_spire_v1_MAGs.tar', 'Coelho_2018_dog_spire_v1_MAGs.tar')
+
+download_file('https://progenomes.embl.de/data/repGenomes/progenomes3.contigs.representatives.fasta.bz2', 'progenomes3.contigs.representatives.fasta.bz2')

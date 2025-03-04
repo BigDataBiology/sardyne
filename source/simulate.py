@@ -1,42 +1,53 @@
-from jug import Task, TaskGenerator
+from jug import Task, TaskGenerator, bvalue
 from fasta import fasta_iter
 import random
 import gzip
 import tempfile
+import re
 import os
 
-def prodigal_gene_sizes(input_file):
-    '''Run prodigal and return the gene sizes (in nucleotides)'''
-    import subprocess
-    import numpy as np
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        aa_out = f'{tmpdirname}/prodigal.faa'
-        nt_out = f'{tmpdirname}/prodigal.fna'
-        prodigal_out = f'{tmpdirname}/prodigal.txt'
-        prodigal_err = f'{tmpdirname}/prodigal.err'
-        zcat_p = subprocess.Popen(['zcat', input_file], stdout=subprocess.PIPE)
-        with open(prodigal_err, 'w') as err:
-            prodigal_p = subprocess.Popen(
-                ['prodigal',
-                     '-a', aa_out,
-                     '-d', nt_out,
-                     '-o', prodigal_out,
-                 ],
-                stderr=err,
-                stdin=zcat_p.stdout
-                )
-        zcat_p.wait()
-        prodigal_p.wait()
-        gene_sizes = []
-        for h, seq in fasta_iter(nt_out):
-            gene_sizes.append(len(seq))
-        return np.array(gene_sizes)
+NR_CHECKM2_THREADS = 8
+
+def select_every(g_id: str, n: int):
+    import hashlib
+    h = hashlib.sha256()
+    h.update(b'sardyne')
+    h.update(g_id.encode('ascii'))
+    h = int(h.hexdigest(), 16)
+    return h % n == 0
+
 
 @TaskGenerator
-def prodigal_gene_sizes_on_mut(input_file, nr_mutations):
-    with tempfile.TemporaryDirectory() as tdir:
-        create_mutated_file(f'{tdir}/mutated.fna.gz', input_file, nr_mutations)
-        return prodigal_gene_sizes(f'{tdir}/mutated.fna.gz')
+def expand_progenomes3(n, allow_list):
+    os.makedirs('../data/data/progenomes3.expanded', exist_ok=True)
+
+    allow_list = {g_id:tag for tag, g_id in allow_list}
+
+    prev = 'x'
+    seen = set()
+    tags = {}
+    for h, seq in fasta_iter('../data/data/progenomes3.contigs.representatives.fasta.bz2'):
+        tokens = h.split('.')
+        assert len(tokens) == 3
+        g_id = '.'.join(tokens[:2])
+        if g_id != prev:
+            prev = g_id
+            if select_every(g_id, n) or g_id in allow_list:
+                oname = f'../data/data/progenomes3.expanded/{g_id}.fna.gz'
+                out = gzip.open(oname, 'wt')
+                assert oname not in seen
+                seen.add(oname)
+                if g_id in allow_list:
+                    tags[oname] = allow_list[g_id]
+                else:
+                    tags[oname] = g_id
+            else:
+                out = None
+        if out is not None:
+            out.write(f'>{h}\n{seq}\n')
+    seen = sorted(seen)
+    return [(oname, tags[oname]) for oname in seen]
+
 
 def mutate1(seq : list[str]) -> None:
     '''Mutate a sequence in place using a simple model'''
@@ -76,11 +87,11 @@ def create_mutated_file(oname, seq, n):
 @TaskGenerator
 def read_seq(ifile):
     '''Read a sequence from a FASTA file, checking that there is only one sequence'''
-    headers = []
-    for h, seq in fasta_iter(ifile):
-        headers.append(h)
-    assert len(headers) == 1
-    return seq
+    seqs = []
+    for _, seq in fasta_iter(ifile):
+        seqs.append(seq)
+    padding = ''.join(['N' for _ in range(300)])
+    return padding.join(seqs)
 
 def random_dna_same_len_as(seq):
     return ''.join(random.choices('ACGT', k=len(seq)))
@@ -139,35 +150,80 @@ def run_checkm2(tag, seq, nr_muts):
         odir = f'outputs/checkm2_{tag}_simulation'
         shutil.rmtree(odir, ignore_errors=True)
         subprocess.check_call([
-            'conda', 'run', '-n', 'checkm2',
+            'pixi', 'run', '--environment', 'checkm2',
                 'checkm2', 'predict',
-                    '--threads', '8',
+                    '--threads', str(NR_CHECKM2_THREADS),
                      '--input', checkm2_idir,
                      '-x', 'fna.gz',
                      '--output-directory', odir,
                      ])
     return odir
 
-INPUT_DATA = [
-        ('ecoli_k12', '511145.SAMN02604091.fna.gz'),
-        ('bacillus_subtilis', '1052585.SAMN02603352.fna.gz'),
-        ('listeria_monocytogenes', '169963.SAMEA3138329.fna.gz'),
-        ('campylobacter_jejuni', '192222.SAMEA1705929.fna.gz'),
-        ('staphylococcus_aureus', '93061.SAMN02604235.fna.gz'),
+
+PRODIGAL_FASTA_HEADER_PAT = r'^>(\S+) # (\d+) # (\d+) # (-?)1 # '
+def get_gene_positions(f: str):
+    '''Extract gene positions from a Prodigal FASTA file'''
+    import polars as pl
+    data = []
+    for line in open(f):
+        if match := re.match(PRODIGAL_FASTA_HEADER_PAT, line):
+            gene_id, start, end, is_reverse = match.groups()
+            start = int(start)
+            end = int(end) + 1
+            is_reverse = is_reverse == '-'
+            length = abs(end - start)
+            data.append((gene_id, start, end, length, is_reverse))
+    return pl.DataFrame(data, schema={
+                    'gene_id': pl.String,
+                    'start': pl.Int32,
+                    'end': pl.Int32,
+                    'length': pl.Int32,
+                    'is_reverse': pl.Boolean},
+                    orient='row')
+
+@TaskGenerator
+def get_all_gene_positions(c2_odir, nr_muts):
+    from glob import glob
+    import polars as pl
+    partials = []
+
+    faas = sorted(glob(f'{c2_odir}/protein_files/*.faa'))
+    assert len(faas) == len(nr_muts)
+    for f in faas:
+        match = re.match(r'.*mutated_(\d+).fna.faa', f)
+        nr_mut = int(match.group(1))
+        partials.append(
+            get_gene_positions(f).with_columns(
+            nr_mutations=pl.lit(nr_mut)
+            ))
+    positions = pl.concat(partials)
+    oname = f'{c2_odir}/all_gene_positions.tsv.gz'
+    with gzip.open(f'{c2_odir}/all_gene_positions.tsv.gz', 'wb') as f:
+        positions.write_csv(f, separator='\t')
+
+    # Not 100% safe as we can get to a state where there is an
+    # interruption in the cleanup loop, leaving the process in a bad
+    # state
+    for f in faas:
+        os.unlink(f)
+    return oname
+
+
+SPECIAL_MICROBES = [
+        ('ecoli_k12', '511145.SAMN02604091'),
+        ('bacillus_subtilis', '1052585.SAMN02603352'),
+        ('listeria_monocytogenes', '169963.SAMEA3138329'),
+        ('campylobacter_jejuni', '192222.SAMEA1705929'),
+        ('staphylococcus_aureus', '93061.SAMN02604235'),
+        ('prevotella_copri', '165179.SAMEA5853203'),
+        ('fusobacterium_mortiferum', '469616.SAMN02463687'),
+        ('streptococcus_pneumoniae', '488222.SAMN02603444'),
         ]
 
 nr_muts = list(range(0, 5_000, 25))
 
-gene_sizes = {}
-random_gene_sizes = {}
-for tag, fname in INPUT_DATA:
-    ifile = f'../data/genomes/{fname}'
+input_genomes = bvalue(expand_progenomes3(200, SPECIAL_MICROBES))
+for ifile,tag in input_genomes:
     seq = read_seq(ifile)
-    gene_sizes[tag] = []
-    for i in nr_muts:
-        gene_sizes[tag].append(prodigal_gene_sizes_on_mut(seq, i))
-    run_checkm2(tag, seq, nr_muts)
-
-    for method in ['uniform', 'markov2', 'markov4']:
-        random_file = create_random_file(tag, seq, method)
-        random_gene_sizes[tag, method] = Task(prodigal_gene_sizes, random_file)
+    c2_odir = run_checkm2(tag, seq, nr_muts)
+    get_all_gene_positions(c2_odir, nr_muts)

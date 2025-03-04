@@ -1,6 +1,11 @@
 *.jugdata/
 /data/genomes/
 /data/data/
+/data/emapper-data/
 /source/outputs/
 __pycache__/
 .jugstatus.sqlite3
+
+# pixi environments
+.pixi
+*.egg-info

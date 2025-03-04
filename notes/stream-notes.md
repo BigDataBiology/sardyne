@@ -2,12 +2,53 @@
 
 ## Next streams
 
+- Use the dog gut MAGs from Coelho et al., 2018 (eventually expand to other datasets)
 - Attempt to find KOs with very stable gene sizes
 - Look at all KO hits (not just those that are unique to a genome)
 - Try filtering DIAMOND hits by position (i.e., only keep those that align near the start of the genes)
 - Explore variations of the ESGS metric (for example, what is the best threshold for the z-score?)
 
+## 2025-03-04
+
+Live: https://www.youtube.com/watch?v=YDNmvQpQ2DI
+
+- Added eggnogmapper and downloaded its database
+- Explored how gene sequences change with (simulated) mutations (in `wip` branch)
+
+
+## 2025-02-25
+
+Recap: https://youtu.be/1GV5VpvNkTI
+Live: https://www.youtube.com/watch?v=3EibnfuPUMc
+
+- Updated to pixi (from conda)
+- Cleaned plotting code to avoid creating too many plots
+- Browsed some outliers
+- Added the special case microbes (e.coli et al) back into the analysis
+
+## 2025-02-18
+
+Recap: https://youtu.be/8E0DTEPSUhw
+Live: https://youtube.com/live/cLDxd6EyLPo
+
+- Cleaned code to remove redundancy
+- Save fewer intermediate files to enable scaling up
+- Use a selection of representative genomes from ProGenomes3 (1%)
+
+## 2025-02-11
+
+Recap: https://youtu.be/OE6BSEDDqd0
+Live: https://www.youtube.com/live/C5zeyqYQGbg
+
+- Cleaned up the code from last week & merged to `main`
+- Expanded the dataset to a few more hand-picked species, but also downloaded the full ProGenomes3 representative set
+- Downloaded dog gut MAGs from [Coelho et al., 2018](https://dx.doi.org/10.1186/s40168-018-0450-3)
+
+
 ## 2025-02-04
+
+Recap: https://youtu.be/iXQRjUq4kAE
+Live: https://www.youtube.com/live/rQp-OkmpHxY
 
 - Proposed metric: sum of z-scores for gene sizes per KO below a certain threshold (e.g., -4). Proposed name: excess of short genes score (ESGS)
 - Plotted ESGS for a few example species
