@@ -2,11 +2,11 @@ from jug import Task, TaskGenerator, bvalue
 from fasta import fasta_iter
 import random
 import gzip
-import tempfile
 import re
 import os
 
 NR_CHECKM2_THREADS = 8
+NR_EMAPPER_THREADS = 8
 
 def select_every(g_id: str, n: int):
     import hashlib
@@ -98,7 +98,6 @@ def random_dna_same_len_as(seq):
 
 def random_dna_same_len_as_markov_chain(seq, mc_len=2):
     '''Generate a random DNA sequence with the same length and Markov chain as seq'''
-    import numpy as np
     from collections import Counter
     import random
     counts_mc_len = Counter(seq[i:i+mc_len] for i in range(len(seq)-mc_len))
@@ -141,7 +140,6 @@ def run_checkm2(tag, seq, nr_muts):
     import shutil
     import tempfile
     import os
-    import pathlib
     with tempfile.TemporaryDirectory() as tdir:
         checkm2_idir = f'{tdir}/checkm2_inputs'
         os.makedirs(checkm2_idir)
@@ -181,6 +179,7 @@ def get_gene_positions(f: str):
                     'is_reverse': pl.Boolean},
                     orient='row')
 
+
 @TaskGenerator
 def get_all_gene_positions(c2_odir, nr_muts):
     from glob import glob
@@ -209,6 +208,54 @@ def get_all_gene_positions(c2_odir, nr_muts):
     return oname
 
 
+def short_hash(seq):
+    import hashlib
+    return hashlib.md5(seq.encode()).hexdigest()[:24]
+
+
+@TaskGenerator
+def collate_protein_sequences(basedir):
+    from collections import defaultdict
+    from glob import glob
+
+    sequences = set()
+    sequences_per_nr_mut = defaultdict(set)
+
+    for f in sorted(glob(f'{basedir}/mutated*.faa')):
+        nr_mut = int(f.split('/')[-1].split('.')[0].split('_')[-1])
+        for header, seq in fasta_iter(f, full_header=True):
+            code = short_hash(seq)
+            sequences.add((code, seq))
+            sequences_per_nr_mut[nr_mut].add((code, header))
+
+    assert len(set(code for code, _ in sequences)) == len(sequences)
+
+    oname = f'{basedir}/all_proteins.faa'
+    with open(oname, 'wt') as f:
+        for code, seq in sorted(sequences):
+            f.write(f'>{code}\n{seq}\n')
+    return oname, sequences_per_nr_mut
+
+
+@TaskGenerator
+def run_emapper(basedir, protein_file):
+    import subprocess
+    from pathlib import Path
+    outdir = f'{basedir}/emapper'
+
+    subprocess.check_call([
+        'emapper.py',
+            '-i', protein_file,
+            '--output_dir', outdir,
+            '--cpu', str(NR_EMAPPER_THREADS),
+            '--data_dir', Path.home() / 'databases/emapper_db',
+            '--override', '1',
+            '--itype', 'protein',
+            '--tax_scope', 'auto',
+            ])
+    return outdir
+
+
 SPECIAL_MICROBES = [
         ('ecoli_k12', '511145.SAMN02604091'),
         ('bacillus_subtilis', '1052585.SAMN02603352'),
@@ -226,4 +273,7 @@ input_genomes = bvalue(expand_progenomes3(200, SPECIAL_MICROBES))
 for ifile,tag in input_genomes:
     seq = read_seq(ifile)
     c2_odir = run_checkm2(tag, seq, nr_muts)
-    get_all_gene_positions(c2_odir, nr_muts)
+    oname_seqmaps = collate_protein_sequences(c2_odir)
+    # get_all_gene_positions(oname_seqmaps[1])
+    run_emapper(c2_odir, oname_seqmaps[0])
+
