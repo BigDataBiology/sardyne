@@ -214,14 +214,16 @@ def short_hash(seq):
 
 
 @TaskGenerator
-def collate_protein_sequences(basedir):
+def collate_protein_sequences(basedir, nr_muts):
     from collections import defaultdict
     from glob import glob
 
     sequences = set()
     sequences_per_nr_mut = defaultdict(set)
 
-    for f in sorted(glob(f'{basedir}/mutated*.faa')):
+    faas = sorted(glob(f'{basedir}/mutated*.faa'))
+    assert len(faas) == len(nr_muts)
+    for f in faas:
         nr_mut = int(f.split('/')[-1].split('.')[0].split('_')[-1])
         for header, seq in fasta_iter(f, full_header=True):
             code = short_hash(seq)
@@ -234,7 +236,7 @@ def collate_protein_sequences(basedir):
     with open(oname, 'wt') as f:
         for code, seq in sorted(sequences):
             f.write(f'>{code}\n{seq}\n')
-    return oname, sequences_per_nr_mut
+    return oname, frozenset(sequences_per_nr_mut)
 
 
 @TaskGenerator
