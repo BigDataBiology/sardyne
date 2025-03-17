@@ -158,12 +158,12 @@ def run_checkm2(tag, seq, nr_muts):
     return odir
 
 
-PRODIGAL_FASTA_HEADER_PAT = r'^>(\S+) # (\d+) # (\d+) # (-?)1 # '
-def get_gene_positions(f: str):
-    '''Extract gene positions from a Prodigal FASTA file'''
+PRODIGAL_FASTA_HEADER_PAT = r'(\S+) # (\d+) # (\d+) # (-?)1 # '
+def get_gene_positions(headers):
+    '''Extract gene positions from a list of headers from Prodigal'''
     import polars as pl
     data = []
-    for line in open(f):
+    for line in headers:
         if match := re.match(PRODIGAL_FASTA_HEADER_PAT, line):
             gene_id, start, end, is_reverse = match.groups()
             start = int(start)
@@ -181,30 +181,21 @@ def get_gene_positions(f: str):
 
 
 @TaskGenerator
-def get_all_gene_positions(c2_odir, nr_muts):
-    from glob import glob
+def get_all_gene_positions(c2_odir, sequences_per_nr_mut):
     import polars as pl
     partials = []
 
-    faas = sorted(glob(f'{c2_odir}/protein_files/*.faa'))
-    assert len(faas) == len(nr_muts)
-    for f in faas:
-        match = re.match(r'.*mutated_(\d+).fna.faa', f)
-        nr_mut = int(match.group(1))
+    for nr_mut, c_headers in sequences_per_nr_mut.items():
+        headers = [h for _, h in c_headers]
         partials.append(
-            get_gene_positions(f).with_columns(
-            nr_mutations=pl.lit(nr_mut)
+            get_gene_positions(headers).with_columns(
+                nr_mutations=pl.lit(nr_mut)
             ))
     positions = pl.concat(partials)
     oname = f'{c2_odir}/all_gene_positions.tsv.gz'
-    with gzip.open(f'{c2_odir}/all_gene_positions.tsv.gz', 'wb') as f:
+    with gzip.open(oname, 'wb') as f:
         positions.write_csv(f, separator='\t')
 
-    # Not 100% safe as we can get to a state where there is an
-    # interruption in the cleanup loop, leaving the process in a bad
-    # state
-    for f in faas:
-        os.unlink(f)
     return oname
 
 
@@ -258,6 +249,15 @@ def run_emapper(basedir, protein_file):
     return outdir
 
 
+@TaskGenerator
+def cleanup_faas(basedir, nr_muts, run_after):
+    from glob import glob
+    faas = sorted(glob(f'{basedir}/mutated*.faa'))
+    assert len(faas) == len(nr_muts)
+    for f in faas:
+        os.unlink(f)
+
+
 SPECIAL_MICROBES = [
         ('ecoli_k12', '511145.SAMN02604091'),
         ('bacillus_subtilis', '1052585.SAMN02603352'),
@@ -272,10 +272,11 @@ SPECIAL_MICROBES = [
 nr_muts = list(range(0, 5_000, 25))
 
 input_genomes = bvalue(expand_progenomes3(200, SPECIAL_MICROBES))
-for ifile,tag in input_genomes:
+for ifile, tag in input_genomes:
     seq = read_seq(ifile)
     c2_odir = run_checkm2(tag, seq, nr_muts)
-    oname_seqmaps = collate_protein_sequences(c2_odir)
-    # get_all_gene_positions(oname_seqmaps[1])
-    run_emapper(c2_odir, oname_seqmaps[0])
+    oname_seqmaps = collate_protein_sequences(c2_odir, nr_muts)
+    cleanup_faas(c2_odir, nr_muts, run_after=oname_seqmaps)
 
+    run_emapper(c2_odir, oname_seqmaps[0])
+    get_all_gene_positions(oname_seqmaps[1])
