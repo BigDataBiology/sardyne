@@ -1,4 +1,4 @@
-from jug import Task, TaskGenerator, bvalue
+from jug import TaskGenerator, bvalue
 from fasta import fasta_iter
 import random
 import gzip
@@ -7,6 +7,7 @@ import os
 
 NR_CHECKM2_THREADS = 8
 NR_EMAPPER_THREADS = 8
+
 
 def select_every(g_id: str, n: int):
     import hashlib
@@ -69,6 +70,7 @@ def mutate1(seq : list[str]) -> None:
             nc = random.choice('ACGT')
         seq[pos] = nc
 
+
 def mutate_multi(seq, n=1):
     '''Mutate a sequence n times'''
     random.seed(seq[:1024])
@@ -77,12 +79,14 @@ def mutate_multi(seq, n=1):
         mutate1(seq)
     return ''.join(seq)
 
+
 def create_mutated_file(oname, seq, n):
     '''Create a mutated file with n mutations'''
     seq = mutate_multi(seq, n)
     with gzip.open(oname, 'wt', compresslevel=0) as f:
         f.write(f'>mutated_{n}\n{seq}\n')
     return oname
+
 
 @TaskGenerator
 def read_seq(ifile):
@@ -93,8 +97,10 @@ def read_seq(ifile):
     padding = ''.join(['N' for _ in range(300)])
     return padding.join(seqs)
 
+
 def random_dna_same_len_as(seq):
     return ''.join(random.choices('ACGT', k=len(seq)))
+
 
 def random_dna_same_len_as_markov_chain(seq, mc_len=2):
     '''Generate a random DNA sequence with the same length and Markov chain as seq'''
@@ -103,7 +109,7 @@ def random_dna_same_len_as_markov_chain(seq, mc_len=2):
     counts_mc_len = Counter(seq[i:i+mc_len] for i in range(len(seq)-mc_len))
     counts_mc_lenp1 = Counter(seq[i:i+mc_len+1] for i in range(len(seq)-mc_len-1))
     probs = {}
-    for k,v in counts_mc_len.items():
+    for k, v in counts_mc_len.items():
         k = tuple(k)
         probs[k] = []
         for n in 'ATCG':
@@ -114,6 +120,7 @@ def random_dna_same_len_as_markov_chain(seq, mc_len=2):
     for i in range(len(seq)-mc_len):
         new_seq.append(random.choices('ATCG', probs[tuple(seq[-mc_len:])])[0])
     return ''.join(new_seq)
+
 
 @TaskGenerator
 def create_random_file(tag, seq, method):
@@ -134,6 +141,7 @@ def create_random_file(tag, seq, method):
         f.write(f'>{tag}_random\n{seq}\n')
     return ofile
 
+
 @TaskGenerator
 def run_checkm2(tag, seq, nr_muts):
     import subprocess
@@ -151,10 +159,10 @@ def run_checkm2(tag, seq, nr_muts):
             'pixi', 'run', '--environment', 'checkm2',
                 'checkm2', 'predict',
                     '--threads', str(NR_CHECKM2_THREADS),
-                     '--input', checkm2_idir,
-                     '-x', 'fna.gz',
-                     '--output-directory', odir,
-                     ])
+                    '--input', checkm2_idir,
+                    '-x', 'fna.gz',
+                    '--output-directory', odir,
+                    ])
     return odir
 
 
