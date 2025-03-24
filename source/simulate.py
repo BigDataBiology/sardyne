@@ -220,7 +220,7 @@ def collate_protein_sequences(basedir, nr_muts):
     sequences = set()
     sequences_per_nr_mut = defaultdict(set)
 
-    faas = sorted(glob(f'{basedir}/mutated*.faa'))
+    faas = sorted(glob(f'{basedir}/protein_files/mutated*.faa'))
     assert len(faas) == len(nr_muts)
     for f in faas:
         nr_mut = int(f.split('/')[-1].split('.')[0].split('_')[-1])
@@ -235,7 +235,7 @@ def collate_protein_sequences(basedir, nr_muts):
     with open(oname, 'wt') as f:
         for code, seq in sorted(sequences):
             f.write(f'>{code}\n{seq}\n')
-    return oname, frozenset(sequences_per_nr_mut)
+    return oname, sequences_per_nr_mut
 
 
 @TaskGenerator
@@ -247,11 +247,10 @@ def run_emapper(basedir, protein_file):
     subprocess.check_call([
         'emapper.py',
             '-i', protein_file,
-            '--output_dir', outdir,
+            '--output', outdir,
             '--cpu', str(NR_EMAPPER_THREADS),
             '--data_dir', Path.home() / 'databases/emapper_db',
-            '--override', '1',
-            '--itype', 'protein',
+            '--itype', 'proteins',
             '--tax_scope', 'auto',
             ])
     return outdir
@@ -260,7 +259,7 @@ def run_emapper(basedir, protein_file):
 @TaskGenerator
 def cleanup_faas(basedir, nr_muts, run_after):
     from glob import glob
-    faas = sorted(glob(f'{basedir}/mutated*.faa'))
+    faas = sorted(glob(f'{basedir}/protein_files/mutated*.faa'))
     assert len(faas) == len(nr_muts)
     for f in faas:
         os.unlink(f)
@@ -287,4 +286,4 @@ for ifile, tag in input_genomes:
     cleanup_faas(c2_odir, nr_muts, run_after=oname_seqmaps)
 
     run_emapper(c2_odir, oname_seqmaps[0])
-    get_all_gene_positions(oname_seqmaps[1])
+    get_all_gene_positions(c2_odir, oname_seqmaps[1])
