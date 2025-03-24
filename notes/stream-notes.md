@@ -11,6 +11,8 @@
 ## 2025-03-25
 
 - Downloaded emapper annotations for GMGCv1
+- Cleaned up all intermediate files to trigger a fresh run
+- Wrote code to join emapper results (in `wip` branch)
 
 ## 2025-03-18
 
