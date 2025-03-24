@@ -4,6 +4,7 @@ import random
 import gzip
 import re
 import os
+from os import path
 
 NR_CHECKM2_THREADS = 8
 NR_EMAPPER_THREADS = 8
@@ -35,7 +36,10 @@ def expand_progenomes3(n, allow_list):
             prev = g_id
             if select_every(g_id, n) or g_id in allow_list:
                 oname = f'../data/data/progenomes3.expanded/{g_id}.fna.gz'
-                out = gzip.open(oname, 'wt')
+                if path.exists(oname):
+                    out = None
+                else:
+                    out = gzip.open(oname, 'wt')
                 assert oname not in seen
                 seen.add(oname)
                 if g_id in allow_list:
