@@ -235,7 +235,7 @@ def collate_protein_sequences(basedir, nr_muts):
     with open(oname, 'wt') as f:
         for code, seq in sorted(sequences):
             f.write(f'>{code}\n{seq}\n')
-    return oname, sequences_per_nr_mut
+    return oname, dict(sequences_per_nr_mut)
 
 
 @TaskGenerator
