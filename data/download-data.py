@@ -53,6 +53,8 @@ download_file('https://data.ace.uq.edu.au/public/misc_downloads/annotree/r83/uni
 
 download_file('https://gmgc.embl.de/downloads/v1.0/subcatalogs/GMGC10.95nr.complete.faa.gz', 'GMGC10.95nr.complete.faa.gz')
 
+download_file('https://gmgc.embl.de/downloads/v1.0/GMGC10.emapper2.annotations.tsv.gz', 'GMGC10.emapper2.annotations.tsv.gz')
+
 download_file('https://swifter.embl.de/~fullam/spire/compiled/Coelho_2018_dog_spire_v1_MAGs.tar', 'Coelho_2018_dog_spire_v1_MAGs.tar')
 
 download_file('https://progenomes.embl.de/data/repGenomes/progenomes3.contigs.representatives.fasta.bz2', 'progenomes3.contigs.representatives.fasta.bz2')
