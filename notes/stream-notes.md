@@ -8,6 +8,10 @@
 - Try filtering DIAMOND hits by position (i.e., only keep those that align near the start of the genes)
 - Explore variations of the ESGS metric (for example, what is the best threshold for the z-score?)
 
+## 2025-04-08
+
+- Incorporated code to expand emapper results into `simulate.py` (and merged into the `main` branch). Thus, we get the same results as if we had run emapper on the original (redundant) sequences.
+
 ## 2025-03-25
 
 - Downloaded emapper annotations for GMGCv1
