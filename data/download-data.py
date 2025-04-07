@@ -28,6 +28,19 @@ def dowload_from_progenomes(tax_id, sample_id):
                 f.write(chunk)
     return filename
 
+
+@TaskGenerator
+def uncompress(f):
+    if not f.endswith('.gz'):
+        raise NotImplementedError(f'Only gzipped files are supported, got {f}')
+    import gzip
+    with gzip.open(f, 'rb') as f_in:
+        with open(f[:-3], 'wb') as f_out:
+            while chunk := f_in.read(8192):
+                f_out.write(chunk)
+    return f[:-3]
+
+
 @TaskGenerator
 def download_e_coli_k12():
     return dowload_from_progenomes.f('511145', 'SAMN02604091')
@@ -53,7 +66,9 @@ download_file('https://data.ace.uq.edu.au/public/misc_downloads/annotree/r83/uni
 
 download_file('https://gmgc.embl.de/downloads/v1.0/subcatalogs/GMGC10.95nr.complete.faa.gz', 'GMGC10.95nr.complete.faa.gz')
 
-download_file('https://gmgc.embl.de/downloads/v1.0/GMGC10.emapper2.annotations.tsv.gz', 'GMGC10.emapper2.annotations.tsv.gz')
+emapper_gz = download_file('https://gmgc.embl.de/downloads/v1.0/GMGC10.emapper2.annotations.tsv.gz',
+                           'GMGC10.emapper2.annotations.tsv.gz')
+uncompress(emapper_gz)
 
 download_file('https://swifter.embl.de/~fullam/spire/compiled/Coelho_2018_dog_spire_v1_MAGs.tar', 'Coelho_2018_dog_spire_v1_MAGs.tar')
 

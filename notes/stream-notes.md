@@ -11,6 +11,7 @@
 ## 2025-04-08
 
 - Incorporated code to expand emapper results into `simulate.py` (and merged into the `main` branch). Thus, we get the same results as if we had run emapper on the original (redundant) sequences.
+- Uncompressed large TSV to make them easier to handle with polars
 
 ## 2025-03-25
 
