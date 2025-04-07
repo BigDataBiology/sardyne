@@ -246,18 +246,18 @@ def collate_protein_sequences(basedir, nr_muts):
 def run_emapper(basedir, protein_file):
     import subprocess
     from pathlib import Path
-    outdir = f'{basedir}/emapper'
+    output = f'{basedir}/emapper'
 
     subprocess.check_call([
         'emapper.py',
             '-i', protein_file,
-            '--output', outdir,
+            '--output', output,
             '--cpu', str(NR_EMAPPER_THREADS),
             '--data_dir', Path.home() / 'databases/emapper_db',
             '--itype', 'proteins',
             '--tax_scope', 'auto',
             ])
-    return outdir
+    return output
 
 
 @TaskGenerator
@@ -267,6 +267,26 @@ def cleanup_faas(basedir, nr_muts, run_after):
     assert len(faas) == len(nr_muts)
     for f in faas:
         os.unlink(f)
+
+
+@TaskGenerator
+def expand_emapper(emapper_outprefix, seqmaps):
+    import polars as pl
+    emapper_out = f'{emapper_outprefix}.emapper.annotations'
+    emapper_out = pl.read_csv(emapper_out,
+                              skip_lines=4,
+                              separator='\t',
+                              comment_prefix='##')
+    hash2original = []
+    for gs in seqmaps.values():
+        for seqhash, header in gs:
+            header, _ = header.split(' ', 1)
+            hash2original.append((seqhash, header))
+
+    hash2original = pl.DataFrame(hash2original,
+                                 schema=['hash', 'original'],
+                                 orient='row')
+    return emapper_out.join(hash2original, left_on='#query', right_on='hash')
 
 
 SPECIAL_MICROBES = [
@@ -289,5 +309,6 @@ for ifile, tag in input_genomes:
     oname_seqmaps = collate_protein_sequences(c2_odir, nr_muts)
     cleanup_faas(c2_odir, nr_muts, run_after=oname_seqmaps)
 
-    run_emapper(c2_odir, oname_seqmaps[0])
+    emapper_outprefix = run_emapper(c2_odir, oname_seqmaps[0])
+    expanded = expand_emapper(emapper_outprefix, oname_seqmaps[1])
     get_all_gene_positions(c2_odir, oname_seqmaps[1])
