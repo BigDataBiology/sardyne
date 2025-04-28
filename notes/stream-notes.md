@@ -11,6 +11,7 @@
 ## 2025-04-28
 
 - Fix eggnog-mapper GMGCv1 background annotation code
+- Plotted the introduced/lost sequences as a function of the number of mutations for all the genomes considered (integrated into `simulate.py`)
 
 ## 2025-04-08
 

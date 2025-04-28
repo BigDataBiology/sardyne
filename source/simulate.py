@@ -289,6 +289,45 @@ def expand_emapper(emapper_outprefix, seqmaps):
     return emapper_out.join(hash2original, left_on='#query', right_on='hash')
 
 
+@TaskGenerator
+def plot_simulation_results(expanded, tag):
+    import polars as pl
+    from matplotlib import pyplot as plt
+    import seaborn as sns
+    print(f'plotting {tag}')
+
+    os.makedirs('plots/introduced_mutations', exist_ok=True)
+    expanded = expanded.with_columns(
+            nr_mutations=expanded['original']
+                        .str.split('_')
+                        .list[1]
+                        .cast(pl.Int32)
+                        .alias('nr_mutations'))
+
+    expanded = expanded[['#query', 'nr_mutations']]
+
+    wt = set(expanded.filter(expanded['nr_mutations'] == 0)['#query'])
+
+    data = []
+    for row in expanded.group_by('nr_mutations').all().iter_rows():
+        m, seqs = row
+        cur = set(seqs)
+        data.append((m, len(cur), len(cur - wt), len(wt - cur), len(cur & wt)))
+
+    data = pl.DataFrame(data, schema=['nr_mut', 'n', 'n_introduced', 'n_missing', 'n_common'], orient='row')
+    data = data.sort('nr_mut')
+    fig, ax = plt.subplots()
+    ax.plot('nr_mut', 'n_introduced', data=data, label='Introduced')
+    ax.plot('nr_mut', 'n_missing', data=data, label='Missing')
+    ax.plot('nr_mut', 'nr_mut', data=data, label=None, linestyle='--', color='black')
+    ax.set_xlabel('Number of mutations')
+    ax.legend()
+    fig.tight_layout()
+    sns.despine(fig, trim=True)
+    fig.savefig(f'plots/introduced_mutations/{tag}.png')
+    return f'plots/introduced_mutations/{tag}.png'
+
+
 SPECIAL_MICROBES = [
         ('ecoli_k12', '511145.SAMN02604091'),
         ('bacillus_subtilis', '1052585.SAMN02603352'),
@@ -311,4 +350,5 @@ for ifile, tag in input_genomes:
 
     emapper_outprefix = run_emapper(c2_odir, oname_seqmaps[0])
     expanded = expand_emapper(emapper_outprefix, oname_seqmaps[1])
+    plot_simulation_results(expanded, tag)
     get_all_gene_positions(c2_odir, oname_seqmaps[1])
