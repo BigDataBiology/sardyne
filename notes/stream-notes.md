@@ -8,6 +8,10 @@
 - Try filtering DIAMOND hits by position (i.e., only keep those that align near the start of the genes)
 - Explore variations of the ESGS metric (for example, what is the best threshold for the z-score?)
 
+## 2025-05-06
+
+- plot the number of mutations vs. the number of introduced/lost sequences using OG space (instead of all sequences)
+
 ## 2025-04-28
 
 - Fix eggnog-mapper GMGCv1 background annotation code

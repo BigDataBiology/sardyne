@@ -5,6 +5,7 @@ import gzip
 import re
 import os
 from os import path
+from eggnog import extract_og
 
 NR_CHECKM2_THREADS = 8
 NR_EMAPPER_THREADS = 8
@@ -290,7 +291,7 @@ def expand_emapper(emapper_outprefix, seqmaps):
 
 
 @TaskGenerator
-def plot_simulation_results(expanded, tag):
+def plot_simulation_results(expanded, tag, use_og1s=False):
     import polars as pl
     from matplotlib import pyplot as plt
     import seaborn as sns
@@ -304,9 +305,18 @@ def plot_simulation_results(expanded, tag):
                         .cast(pl.Int32)
                         .alias('nr_mutations'))
 
-    expanded = expanded[['#query', 'nr_mutations']]
+    if use_og1s:
+        expanded = expanded.with_columns(
+                    eggNOG_OG1=pl.col('eggNOG_OGs')
+                            .map_elements(extract_og,
+                            return_dtype=str))
+        col = 'eggNOG_OG1'
+    else:
+        col = '#query'
 
-    wt = set(expanded.filter(expanded['nr_mutations'] == 0)['#query'])
+    expanded = expanded[[col, 'nr_mutations']]
+
+    wt = set(expanded.filter(expanded['nr_mutations'] == 0)[col])
 
     data = []
     for row in expanded.group_by('nr_mutations').all().iter_rows():
@@ -319,13 +329,16 @@ def plot_simulation_results(expanded, tag):
     fig, ax = plt.subplots()
     ax.plot('nr_mut', 'n_introduced', data=data, label='Introduced')
     ax.plot('nr_mut', 'n_missing', data=data, label='Missing')
-    ax.plot('nr_mut', 'nr_mut', data=data, label=None, linestyle='--', color='black')
+    if not use_og1s:
+        ax.plot('nr_mut', 'nr_mut', data=data, label=None, linestyle='--', color='black')
     ax.set_xlabel('Number of mutations')
     ax.legend()
     fig.tight_layout()
     sns.despine(fig, trim=True)
-    fig.savefig(f'plots/introduced_mutations/{tag}.png')
-    return f'plots/introduced_mutations/{tag}.png'
+    suffix = '_og1s' if use_og1s else ''
+    oname = f'plots/introduced_mutations/{tag}{suffix}.png'
+    fig.savefig(oname, dpi=300)
+    return oname
 
 
 SPECIAL_MICROBES = [
@@ -351,4 +364,5 @@ for ifile, tag in input_genomes:
     emapper_outprefix = run_emapper(c2_odir, oname_seqmaps[0])
     expanded = expand_emapper(emapper_outprefix, oname_seqmaps[1])
     plot_simulation_results(expanded, tag)
+    plot_simulation_results(expanded, tag, use_og1s=True)
     get_all_gene_positions(c2_odir, oname_seqmaps[1])
