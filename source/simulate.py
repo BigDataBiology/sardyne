@@ -341,6 +341,12 @@ def plot_simulation_results(expanded, tag, use_og1s=False):
     return oname
 
 
+@TaskGenerator
+def select_columns(df, columns):
+    '''Select columns from a DataFrame'''
+    return df.select(columns)
+
+
 SPECIAL_MICROBES = [
         ('ecoli_k12', '511145.SAMN02604091'),
         ('bacillus_subtilis', '1052585.SAMN02603352'),
@@ -355,6 +361,8 @@ SPECIAL_MICROBES = [
 nr_muts = list(range(0, 5_000, 25))
 
 input_genomes = bvalue(expand_progenomes3(200, SPECIAL_MICROBES))
+expanded = {}
+gene_positions = {}
 for ifile, tag in input_genomes:
     seq = read_seq(ifile)
     c2_odir = run_checkm2(tag, seq, nr_muts)
@@ -362,7 +370,8 @@ for ifile, tag in input_genomes:
     cleanup_faas(c2_odir, nr_muts, run_after=oname_seqmaps)
 
     emapper_outprefix = run_emapper(c2_odir, oname_seqmaps[0])
-    expanded = expand_emapper(emapper_outprefix, oname_seqmaps[1])
-    plot_simulation_results(expanded, tag)
-    plot_simulation_results(expanded, tag, use_og1s=True)
-    get_all_gene_positions(c2_odir, oname_seqmaps[1])
+    expanded[tag] = expand_emapper(emapper_outprefix, oname_seqmaps[1])
+    expanded[tag] = select_columns(expanded[tag], ['#query', 'eggNOG_OGs', 'original'])
+    plot_simulation_results(expanded[tag], tag)
+    plot_simulation_results(expanded[tag], tag, use_og1s=True)
+    gene_positions[tag] = get_all_gene_positions(c2_odir, oname_seqmaps[1])
