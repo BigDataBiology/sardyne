@@ -75,13 +75,7 @@ for ifile, tag in jugspace['input_genomes']:
     emapper_out = emapper_out.filter(pl.col('eggNOG_OG1').is_in(ogs))
     all_muts = sorted(set(emapper_out['nr_mutations']))
 
-    og_mean_std = pl.DataFrame(
-            {'eggNOG_OG1': list(aa_sizes_by_og.keys()),
-             'mean': [v.mean() for v in aa_sizes_by_og.values()],
-             'std': [v.std() for v in aa_sizes_by_og.values()],
-             }, orient='row',)
-
-    emapper_out = emapper_out.join(og_mean_std, left_on='eggNOG_OG1', right_on='eggNOG_OG1')
+    emapper_out = emapper_out.join(og_sizes, left_on='eggNOG_OG1', right_on='OG')
 
     zscores = emapper_out.with_columns(
         z=(pl.col('length')- pl.col('mean'))/pl.col('std')
@@ -110,6 +104,7 @@ for ifile, tag in jugspace['input_genomes']:
                     )
         ax.set_title(f'z-scores for OG lengths ({tag})')
         fig.savefig(f'plots/emapper_ref/length_by_og_checkm2_zscore_{tag}.png')
+        plt.close(fig)
 
     if PLOT_KO_LENGTHS_CUMMDIST:
         fig,ax = plt.subplots()
@@ -123,6 +118,7 @@ for ifile, tag in jugspace['input_genomes']:
         ax.set_title(f'z-score distribution for OG lengths ({tag})')
         fig.tight_layout()
         fig.savefig(f'plots/emapper_ref/OG_zscores_{tag}.png')
+        plt.close(fig)
 
     zscores_thresh = pl.concat([
                 zscores.with_columns([
@@ -145,4 +141,3 @@ sns.despine(esgs_fig, trim=True)
 esgs_fig.tight_layout()
 esgs_fig.savefig('plots/emapper_ref/esgs_m4_og.svg')
 esgs_fig.savefig('plots/emapper_ref/esgs_m4_og.png')
-
