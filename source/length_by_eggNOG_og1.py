@@ -2,7 +2,6 @@ from os import makedirs
 import gzip
 import polars as pl
 import numpy as np
-from collections import defaultdict
 import seaborn as sns
 from matplotlib import pyplot as plt
 import jug
@@ -10,47 +9,12 @@ from eggnog import extract_og
 
 PLOT_KO_LENGTHS_BOXPLOT = True
 PLOT_KO_LENGTHS_CUMMDIST = True
-MIN_UNIGENES_PER_OG = 100
 
 _, jugspace = jug.init('simulate.py', 'simulate.jugdata')
 makedirs('plots/emapper_ref/', exist_ok=True)
 
-with gzip.open('./outputs/GMGC10.emapper2.annotations.complete.tsv.gz', 'rb') as f:
-    emapper = pl.read_csv(f, separator='\t')
-
-ogs = set(
-        emapper
-            .group_by('eggNOG_OG1')
-            .len()
-            .filter(pl.col('len') > MIN_UNIGENES_PER_OG)['eggNOG_OG1']
-            .to_list()
-    )
-pre_len = len(emapper)
-emapper = emapper.filter(pl.col('eggNOG_OG1').is_in(ogs))
-post_len = len(emapper)
-print(f'Removed {pre_len - post_len:,} OGs (out of {pre_len:,}; {(pre_len - post_len)/pre_len:.2%})')
-
-aa_sizes_by_og = defaultdict(list)
-for og, unigene_len in emapper[['eggNOG_OG1', 'aa_size']].iter_rows():
-    aa_sizes_by_og[og].append(unigene_len)
-
-aa_sizes_by_og = {k:np.array(v) for k,v in aa_sizes_by_og.items()}
-for v in aa_sizes_by_og.values():
-    v.sort()
-
-
-og_sizes = pl.DataFrame(
-        [ # Multiply by 3 to get nucleotide length
-            [k, v.mean() * 3, (v*3).std()]
-            for k,v in aa_sizes_by_og.items()],
-        orient='row',
-        schema={
-            'OG': pl.String,
-            'mean': pl.Float32,
-            'std': pl.Float32,
-            }
-        )
-
+og_sizes = pl.read_csv('outputs/GMGC10.emapper2.annotations.complete.ogsizes.tsv', separator='\t')
+ogs = set(og_sizes['OG'])
 
 view_muts = [0, 100, 1000]
 zscores_outs = []

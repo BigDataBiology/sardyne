@@ -8,6 +8,10 @@
 - Try filtering DIAMOND hits by position (i.e., only keep those that align near the start of the genes)
 - Explore variations of the ESGS metric (for example, what is the best threshold for the z-score?)
 
+## 2025-05-20
+
+- Move baseline OG size computation to a jug script (so results are cached)
+
 ## 2025-05-06
 
 

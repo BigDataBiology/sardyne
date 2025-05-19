@@ -1,10 +1,12 @@
 import polars as pl
 from fasta import fasta_iter
-from jug import Task
+from jug import TaskGenerator
 from eggnog import extract_og
 
+MIN_UNIGENES_PER_OG = 100
 
-@Task
+
+@TaskGenerator
 def complete_og_size_table():
     """
     Get the complete ogs from the GMGC10 dataset.
@@ -39,3 +41,50 @@ def complete_og_size_table():
     subprocess.check_call(['gzip', oname])
     return oname + '.gz'
 
+
+@TaskGenerator
+def baseline_og_sizes(gmgc10_complete, min_unigenes_per_og):
+    import numpy as np
+    import gzip
+    from collections import defaultdict
+    with gzip.open(gmgc10_complete, 'rb') as f:
+        emapper = pl.read_csv(f, separator='\t')
+
+    ogs = set(
+            emapper
+                .group_by('eggNOG_OG1')
+                .len()
+                .filter(pl.col('len') > MIN_UNIGENES_PER_OG)['eggNOG_OG1']
+                .to_list()
+        )
+    pre_len = len(emapper)
+    emapper = emapper.filter(pl.col('eggNOG_OG1').is_in(ogs))
+    post_len = len(emapper)
+    print(f'Removed {pre_len - post_len:,} OGs (out of {pre_len:,}; {(pre_len - post_len)/pre_len:.2%})')
+
+    aa_sizes_by_og = defaultdict(list)
+    for og, unigene_len in emapper[['eggNOG_OG1', 'aa_size']].iter_rows():
+        aa_sizes_by_og[og].append(unigene_len)
+
+    aa_sizes_by_og = {k:np.array(v) for k,v in aa_sizes_by_og.items()}
+    for v in aa_sizes_by_og.values():
+        v.sort()
+
+
+    og_sizes = pl.DataFrame(
+            [ # Multiply by 3 to get nucleotide length
+                [k, v.mean() * 3, (v*3).std()]
+                for k,v in aa_sizes_by_og.items()],
+            orient='row',
+            schema={
+                'OG': pl.String,
+                'mean': pl.Float32,
+                'std': pl.Float32,
+                }
+            )
+    oname = 'outputs/GMGC10.emapper2.annotations.complete.ogsizes.tsv'
+    og_sizes.write_csv(oname, separator='\t')
+    return oname
+
+
+baseline_og_sizes(complete_og_size_table(), MIN_UNIGENES_PER_OG)
