@@ -10,6 +10,9 @@
 
 ## 2025-05-06
 
+
+Recap: https://youtu.be/glk2xfHqJ3s
+
 - plot the number of mutations vs. the number of introduced/lost sequences using OG space (instead of all sequences)
 - used eggnog-mapper outputs as references for the gene sizes
 
