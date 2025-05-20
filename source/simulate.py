@@ -347,6 +347,39 @@ def select_columns(df, columns):
     return df.select(columns)
 
 
+@TaskGenerator
+def load_og_sizes():
+    '''Load OG sizes from a file'''
+    import polars as pl
+    return pl.read_csv('outputs/GMGC10.emapper2.annotations.complete.ogsizes.tsv', separator='\t')
+
+
+@TaskGenerator
+def zscore_by_og(emapper_out, gene_positions, og_sizes):
+    '''Z-score the lengths of the genes by OG'''
+    import polars as pl
+    ogs = set(og_sizes['OG'])
+
+    emapper_out = emapper_out[['#query', 'eggNOG_OGs', 'original']]
+    emapper_out = emapper_out.with_columns(
+        eggNOG_OG1=emapper_out['eggNOG_OGs'].map_elements(
+            extract_og,
+            return_dtype=pl.String
+            ))
+    with gzip.open(gene_positions, 'rb') as f:
+        gene_positions = pl.read_csv(f, separator='\t')
+
+    emapper_out = emapper_out.join(gene_positions, left_on='original', right_on='gene_id')[['nr_mutations', 'eggNOG_OG1', 'length']]
+    emapper_out = emapper_out.filter(pl.col('eggNOG_OG1').is_in(ogs))
+
+    emapper_out = emapper_out.join(og_sizes, left_on='eggNOG_OG1', right_on='OG')
+
+    zscores = emapper_out.with_columns(
+        z=(pl.col('length')- pl.col('mean'))/pl.col('std')
+        )[['nr_mutations', 'eggNOG_OG1', 'z']]
+    return zscores
+
+
 SPECIAL_MICROBES = [
         ('ecoli_k12', '511145.SAMN02604091'),
         ('bacillus_subtilis', '1052585.SAMN02603352'),
@@ -363,6 +396,8 @@ nr_muts = list(range(0, 5_000, 25))
 input_genomes = bvalue(expand_progenomes3(200, SPECIAL_MICROBES))
 expanded = {}
 gene_positions = {}
+og_sizes = load_og_sizes()
+zscores = {}
 for ifile, tag in input_genomes:
     seq = read_seq(ifile)
     c2_odir = run_checkm2(tag, seq, nr_muts)
@@ -375,3 +410,5 @@ for ifile, tag in input_genomes:
     plot_simulation_results(expanded[tag], tag)
     plot_simulation_results(expanded[tag], tag, use_og1s=True)
     gene_positions[tag] = get_all_gene_positions(c2_odir, oname_seqmaps[1])
+    zscores[tag] = zscore_by_og(expanded[tag], gene_positions[tag], og_sizes)
+

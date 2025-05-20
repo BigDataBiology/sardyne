@@ -7,14 +7,15 @@ from matplotlib import pyplot as plt
 import jug
 from eggnog import extract_og
 
-PLOT_KO_LENGTHS_BOXPLOT = True
-PLOT_KO_LENGTHS_CUMMDIST = True
+PLOT_KO_LENGTHS_BOXPLOT = False
+PLOT_KO_LENGTHS_CUMMDIST = False
 
 _, jugspace = jug.init('simulate.py', 'simulate.jugdata')
 makedirs('plots/emapper_ref/', exist_ok=True)
 
 og_sizes = pl.read_csv('outputs/GMGC10.emapper2.annotations.complete.ogsizes.tsv', separator='\t')
 ogs = set(og_sizes['OG'])
+
 
 view_muts = [0, 100, 1000]
 zscores_outs = []
@@ -23,33 +24,18 @@ all_esgs = []
 esgs_fig,esgs_ax = plt.subplots()
 
 for ifile, tag in jugspace['input_genomes']:
+    print(tag)
+    zscores = jug.value(jugspace['zscores'][tag])
 
-    emapper_out = jugspace['expanded'][tag]
-    emapper_out = jug.value(emapper_out)
-    emapper_out = emapper_out[['#query', 'eggNOG_OGs', 'original']]
-    emapper_out = emapper_out.with_columns(
-        eggNOG_OG1=emapper_out['eggNOG_OGs'].map_elements(
-            extract_og,
-            return_dtype=pl.String
-            ))
-    with gzip.open(jug.value(jugspace['gene_positions'][tag]), 'rb') as f:
-        gene_positions = pl.read_csv(f, separator='\t')
-
-    emapper_out = emapper_out.join(gene_positions, left_on='original', right_on='gene_id')[['nr_mutations', 'eggNOG_OG1', 'length']]
-    emapper_out = emapper_out.filter(pl.col('eggNOG_OG1').is_in(ogs))
-    all_muts = sorted(set(emapper_out['nr_mutations']))
-
-    emapper_out = emapper_out.join(og_sizes, left_on='eggNOG_OG1', right_on='OG')
-
-    zscores = emapper_out.with_columns(
-        z=(pl.col('length')- pl.col('mean'))/pl.col('std')
-        )[['nr_mutations', 'eggNOG_OG1', 'z']]
-
+    all_muts = sorted(set(zscores['nr_mutations']))
 
     esgs = []
     for mut in all_muts:
-        sel = zscores.filter((pl.col('nr_mutations') == mut) & (pl.col('z') < -4)).select(pl.col('z').sum())
+        sel = zscores.filter(
+                    (pl.col('nr_mutations') == mut) & (pl.col('z') < -4)
+                    ).select(pl.col('z').sum())
         esgs.append(sel.item())
+
 
     [ell] = esgs_ax.plot(all_muts, esgs, label=tag)
     esgs_ax.plot(all_muts, [esgs[0] for _ in all_muts], label=None, linestyle='--', color=ell.get_color())

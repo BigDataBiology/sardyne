@@ -11,6 +11,7 @@
 ## 2025-05-20
 
 - Move baseline OG size computation to a jug script (so results are cached)
+- Move zscore computation to the `simulate.py` jug script
 
 ## 2025-05-06
 
