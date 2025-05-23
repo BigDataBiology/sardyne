@@ -1,9 +1,10 @@
-[project]
+[workspace]
 authors = ["Luis Pedro Coelho <luis@luispedro.org>"]
 channels = ["conda-forge", "bioconda"]
 name = "sardyne"
 platforms = ["linux-64"]
 version = "0.1.0"
+preview = ["pixi-build"]
 
 [tasks]
 
@@ -11,7 +12,6 @@ version = "0.1.0"
 
 [feature.sardyne.dependencies]
 python = "3.11.*"
-jug = ">=2.3.1,<3"
 polars = ">=1.22.0,<2"
 matplotlib = ">=3.10.0,<4"
 numpy = ">=2.2.3,<3"
@@ -21,6 +21,9 @@ prodigal = ">=2.6.3,<3"
 pyrodigal = ">=3.6.3,<4"
 ipython = ">=8.32.0,<9"
 eggnog-mapper = ">=2.1.3,<3"
+
+[feature.sardyne.pypi-dependencies]
+jug = { git = "https://github.com/luispedro/jug.git", rev = "e6d4fcff297a84198ef4fcbbad6bbdf410a38720" }
 
 [feature.checkM2.dependencies]
 # checkm2 1.1.0 resulted in an error (25 Feb 2025)
