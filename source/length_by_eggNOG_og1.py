@@ -1,11 +1,9 @@
 from os import makedirs
-import gzip
 import polars as pl
 import numpy as np
 import seaborn as sns
 from matplotlib import pyplot as plt
 import jug
-from eggnog import extract_og
 
 PLOT_KO_LENGTHS_BOXPLOT = False
 PLOT_KO_LENGTHS_CUMMDIST = False
