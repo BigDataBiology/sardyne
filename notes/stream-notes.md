@@ -10,18 +10,23 @@
 
 ## 2025-05-20
 
+Recap: https://youtu.be/VRy7YQgCdzM
+Live stream: https://youtube.com/live/06CcRSs_K5g
+
 - Move baseline OG size computation to a jug script (so results are cached)
 - Move zscore computation to the `simulate.py` jug script
 
 ## 2025-05-06
 
-
 Recap: https://youtu.be/glk2xfHqJ3s
+Live stream: https://youtube.com/live/HkdUe69ra3s
 
 - plot the number of mutations vs. the number of introduced/lost sequences using OG space (instead of all sequences)
 - used eggnog-mapper outputs as references for the gene sizes
 
 ## 2025-04-28
+
+Live stream: https://youtube.com/live/lfzWs5hIaiQ
 
 - Fix eggnog-mapper GMGCv1 background annotation code
 - Plotted the introduced/lost sequences as a function of the number of mutations for all the genomes considered (integrated into `simulate.py`)
